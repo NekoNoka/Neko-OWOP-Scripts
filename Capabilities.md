@@ -10,6 +10,7 @@
 * Using w and s while selecting the cursor tool will move the colors in the palette bar.
 * Export tool was changed to include a save button which names the image you're saving.
 * Paste tool was added.
+* Copy tool was added.
 * Eraser tool was added.
 * Foreign pixel remover tool will replace any pixel (that is not in your palette) with the color currently selected (right click color if you're right clicking).
 * Pixel Perfect Tool makes your drawing smoother by not placing doubles.
