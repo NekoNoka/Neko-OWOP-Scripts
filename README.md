@@ -4,8 +4,8 @@ Please leave suggestions on tools/features that I can add to make it better.
 
 # Requirements
 
-* It requires OPM 2 https://opm.dimden.dev/
 * It requires Tamper Monkey https://www.tampermonkey.net/
+* It requires OPM 2 https://opm.dimden.dev/
 
 # How to use
 
