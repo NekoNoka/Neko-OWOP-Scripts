@@ -1,3 +1,5 @@
+This is for a specific website called https://www.ourworldofpixels.com
+
 This is a project of mine mostly for my own enjoyment to see what I can make and to allow for artists to have an easier time making art.
 
 Please leave suggestions on tools/features that I can add to make it better.
