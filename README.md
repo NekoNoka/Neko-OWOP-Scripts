@@ -7,7 +7,10 @@ Please leave suggestions on tools/features that I can add to make it better.
 # Requirements
 
 * It requires Tamper Monkey https://www.tampermonkey.net/
-* It requires OPM 2 https://opm.dimden.dev/
+
+# Optional
+
+* It may be used alongside OPM 2 (https://opm.dimden.dev/) for extra quality of life features but is not required.
 
 # How to use
 
