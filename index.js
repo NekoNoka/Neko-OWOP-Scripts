@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.8.1
+// @version      0.9.0
 // @description  Scripts for opm
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -115,8 +115,8 @@ function install() {
         if (pixel.c[3] !== undefined && pixel.c[3] !== 255 && (this.deletePixels(pixel), true)) continue;
         let xchunk = Math.floor(pixel.x / 16);
         let ychunk = Math.floor(pixel.y / 16);
-        if (!OWOP.misc._world) continue;
-        if (OWOP.misc._world.protectedChunks[`${xchunk},${ychunk}`] && (this.deletePixels(pixel), true)) continue;
+        //if (!OWOP.misc._world) continue;
+        //if (OWOP.misc._world.protectedChunks[`${xchunk},${ychunk}`] && (this.deletePixels(pixel), true)) continue;
         let xcc = Math.floor(tX / 16) * 16;
         let ycc = Math.floor(tY / 16) * 16;
         if (pixel.x < (xcc - 31) || pixel.y < (ycc - 31) || pixel.x > (xcc + 46) || pixel.y > (ycc + 46)) continue;
@@ -159,38 +159,26 @@ function install() {
       if (e2 <= dx) { err += dx; y1 += sy; }
     }
   }
-
-  const dlarea = (x, y, w, h, onblob) => {
-    var c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    var ctx = c.getContext('2d');
-    var d = ctx.createImageData(w, h);
-    for (var i = y; i < y + h; i++) {
-      for (var j = x; j < x + w; j++) {
-        let pix;
-        if ((pix = OWOP.world.getPixel(j, i), !pix)) return console.error("Well something happened, you probably tried getting an area outside of loaded chunks.");
-        d.data[4 * ((i - y) * w + (j - x))] = pix[0];
-        d.data[4 * ((i - y) * w + (j - x)) + 1] = pix[1];
-        d.data[4 * ((i - y) * w + (j - x)) + 2] = pix[2];
-        d.data[4 * ((i - y) * w + (j - x)) + 3] = 255;
-      }
-    }
-    ctx.putImageData(d, 0, 0);
-    c.toBlob(onblob);
-  }
+  OWOP.OPM = false;
+  if (OWOP.misc) OWOP.OPM = true;
+  if (!OWOP.OPM) OWOP.tool = OWOP.tools;
 
   (function () {
-    const misc = OWOP.misc; // while i will keep misc as a variable i do not want misc to be used anywhere 
-    const windowSys = OWOP.windowSys;
-    const { GUIWindow } = OWOP.require("windowsys");
-    OWOP.player.buttonPressedDown = [];
-    let camera = OWOP.camera;
-    let cR = OWOP.require("canvas_renderer");
-    let drawText = cR.drawText;
-    let renderer = cR.renderer;
-    const addTool = OWOP.tool.addToolObject;
-    const setColor = (cursor, color) => {
+    var camera = OWOP.camera;
+    var renderer = OWOP.renderer;
+    var GUIWindow = OWOP.windowSys.class.window;
+    const mkHTML = OWOP.util.mkHTML;
+    var drawText = (t, e, n, r, o) => {
+      t.strokeStyle = "#000000";
+      t.fillStyle = "#FFFFFF";
+      t.lineWidth = 2.5;
+      t.globalAlpha = 0.5;
+      o && (n -= t.measureText(e).width >> 1);
+      t.strokeText(e, n, r);
+      t.globalAlpha = 1;
+      t.fillText(e, n, r);
+    };
+    var setColor = (cursor, color) => {
       if (!color) return;
       if (cursor === 1) {
         OWOP.player.selectedColor = color;
@@ -198,13 +186,13 @@ function install() {
         OWOP.player.rightSelectedColor = color;
         localStorage.setItem("rSC", JSON.stringify(OWOP.player.rightSelectedColor));
       }
-    }
-    // let C = OWOP.require('util/color').colorUtils;
+    };
+    // var C = OWOP.require('util/color').colorUtils;
 
     if (!localStorage["rSC"]) localStorage.setItem("rSC", JSON.stringify([255, 255, 255]));
     OWOP.player.rightSelectedColor = JSON.parse(localStorage.getItem("rSC"));
 
-    addTool(new OWOP.tool.class('Cursor', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Cursor', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
       // render protected chunks
       // tool.setFxRenderer((fx, ctx, time) => {
       //   return;
@@ -428,7 +416,7 @@ function install() {
         }
       });
     }));
-    addTool(new OWOP.tool.class('Pipette', OWOP.cursors.pipette, OWOP.fx.player.NONE, OWOP.RANK.NONE, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Pipette', OWOP.cursors.pipette, OWOP.fx.player.NONE, OWOP.RANK.NONE, tool => {
       tool.setEvent('mousedown mousemove', mouse => {
         var c = OWOP.world.getPixel(mouse.tileX, mouse.tileY);
         if (!c) return mouse.buttons;
@@ -444,12 +432,7 @@ function install() {
         return mouse.buttons;
       });
     }));
-    addTool(new OWOP.tool.class('Export', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.NONE, tool => {
-      function mkHTML(t, e) {
-        var n = document.createElement(t);
-        for (var r in e) n[r] = e[r];
-        return n;
-      }
+    OWOP.tool.addToolObject(new OWOP.tool.class('Export', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.NONE, tool => {
       tool.setFxRenderer((fx, ctx, time) => {
         if (!fx.extra.isLocalPlayer) return 1;
         var x = fx.extra.player.x;
@@ -582,11 +565,34 @@ function install() {
         } else if (mouse.buttons === 2 && tool.extra.end && isInside()) {
           tool.extra.start = undefined;
           tool.extra.end = undefined;
-          var cvs = dlarea(s[0], s[1], e[0] - s[0], e[1] - s[1], b => {
+          ((x, y, w, h, onblob) => {
+            var c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            var ctx = c.getContext('2d');
+            var d = ctx.createImageData(w, h);
+            for (var i = y; i < y + h; i++) {
+              for (var j = x; j < x + w; j++) {
+                let pix;
+                if ((pix = PM.queue[`${j},${i}`], !pix)) {
+                  if ((pix = OWOP.world.getPixel(j, i), !pix)) {
+                    console.warn("Well something happened, you probably tried getting an area outside of loaded chunks.");
+                    pix = [255, 255, 255];
+                  }
+                }
+                d.data[4 * ((i - y) * w + (j - x))] = pix[0];
+                d.data[4 * ((i - y) * w + (j - x)) + 1] = pix[1];
+                d.data[4 * ((i - y) * w + (j - x)) + 2] = pix[2];
+                d.data[4 * ((i - y) * w + (j - x)) + 3] = 255;
+              }
+            }
+            ctx.putImageData(d, 0, 0);
+            c.toBlob(onblob);
+          })(s[0], s[1], e[0] - s[0], e[1] - s[1], b => {
             var url = URL.createObjectURL(b);
             var img = new Image();
             img.onload = () => {
-              windowSys.addWindow(new GUIWindow("Resulting image", {
+              OWOP.windowSys.addWindow(new GUIWindow("Resulting image", {
                 centerOnce: true,
                 closeable: true
               }, win => {
@@ -646,7 +652,7 @@ function install() {
       });
     }));
     // i hate this i hate this i hate this, but it works... and its the best looking one... i couldnt get any other variants i programmed of this to work at all.
-    addTool(new OWOP.tool.class('Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.extra.usedQueue = {};
       tool.extra.queue = {};
       tool.extra.fillingColor = undefined;
@@ -693,7 +699,7 @@ function install() {
       tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = OWOP.world.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.setEvent("tick", tick)));
       tool.setEvent("mouseup deselect", mouse => mouse && 1 & mouse.buttons || (tool.extra.fillingColor = undefined, tool.extra.queue = {}, tool.extra.usedQueue = {}, tool.setEvent("tick", null)));
     }));
-    addTool(new OWOP.tool.class('Line', OWOP.cursors.wand, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Line', OWOP.cursors.wand, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       var start = undefined;
       var end = undefined;
       var queue = [];
@@ -714,7 +720,6 @@ function install() {
       tool.setEvent('mousedown', mouse => {
         if (!(mouse.buttons & 0b100)) {
           queue = [];
-          tool.setEvent('tick', null);
           start = [mouse.tileX, mouse.tileY];
           end = [mouse.tileX, mouse.tileY];
         }
@@ -739,10 +744,9 @@ function install() {
       tool.setEvent('deselect', mouse => {
         start = undefined;
         end = undefined;
-        tool.setEvent('tick', null);
       });
     }));
-    addTool(new OWOP.tool.class('Neko Eraser', OWOP.cursors.erase, OWOP.fx.player.RECT_SELECT_ALIGNED(16), OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Neko Eraser', OWOP.cursors.erase, OWOP.fx.player.RECT_SELECT_ALIGNED(16), OWOP.RANK.USER, tool => {
       tool.setEvent('mousedown mousemove', mouse => {
         if (mouse.buttons !== 2 && mouse.buttons !== 1) return 3;
         let c = mouse.buttons === 1 ? OWOP.player.selectedColor : OWOP.player.rightSelectedColor;
@@ -756,7 +760,7 @@ function install() {
         return 3;
       });
     }));
-    addTool(new OWOP.tool.class('Neko Foreign Pixel Replacer', OWOP.cursors.erase, OWOP.fx.player.RECT_SELECT_ALIGNED(16), OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Neko Foreign Pixel Replacer', OWOP.cursors.erase, OWOP.fx.player.RECT_SELECT_ALIGNED(16), OWOP.RANK.USER, tool => {
       tool.setEvent('mousedown mousemove', mouse => {
         if (mouse.buttons !== 2 && mouse.buttons !== 1) return 3;
         let replacer = new Color(mouse.buttons === 1 ? OWOP.player.selectedColor : OWOP.player.rightSelectedColor);
@@ -781,7 +785,7 @@ function install() {
         return 3;
       });
     }));
-    addTool(new OWOP.tool.class('Pixel Perfect', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Pixel Perfect', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
       // cursor functionality
       tool.extra.lastX;
       tool.extra.lastY;
@@ -998,7 +1002,7 @@ function install() {
         }
       });
     }));
-    addTool(new OWOP.tool.class('Palette Color Adder', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.NONE, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Palette Color Adder', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.NONE, tool => {
       tool.setFxRenderer((fx, ctx, time) => {
         if (!fx.extra.isLocalPlayer) return 1;
         var x = fx.extra.player.x;
@@ -1165,7 +1169,7 @@ function install() {
         }
       });
     }));
-    addTool(new OWOP.tool.class('Rainbow Cursor', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Rainbow Cursor', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
       // cursor functionality
       tool.extra.lastX;
       tool.extra.lastY;
@@ -1193,7 +1197,7 @@ function install() {
         tool.extra.lastY = undefined;
       });
     }));
-    addTool(new OWOP.tool.class('Rainbow Line', OWOP.cursors.wand, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Rainbow Line', OWOP.cursors.wand, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.extra.start = undefined;
       tool.extra.end = undefined;
       tool.extra.c = 0;
@@ -1233,7 +1237,7 @@ function install() {
         tool.extra.c = 0;
       });
     }));
-    addTool(new OWOP.tool.class('Rainbow Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Rainbow Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.extra.usedQueue = {};
       tool.extra.queue = {};
       tool.extra.fillingColor = undefined;
@@ -1280,7 +1284,7 @@ function install() {
       tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = OWOP.world.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.setEvent("tick", tick)));
       tool.setEvent("mouseup deselect", mouse => mouse && 1 & mouse.buttons || (tool.extra.fillingColor = undefined, tool.extra.queue = {}, tool.extra.usedQueue = {}, tool.setEvent("tick", null)));
     }));
-    addTool(new OWOP.tool.class('Checkered Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Checkered Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.extra.usedQueue = {};
       tool.extra.queue = {};
       tool.extra.fillingColor = undefined;
@@ -1331,10 +1335,10 @@ function install() {
       tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = OWOP.world.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.extra.checkered = (mouse.tileX + mouse.tileY) - 2 * Math.floor((mouse.tileX + mouse.tileY) / 2), tool.setEvent("tick", tick)));
       tool.setEvent("mouseup deselect", mouse => mouse && 1 & mouse.buttons || (tool.extra.fillingColor = undefined, tool.extra.checkered = undefined, tool.extra.queue = {}, tool.extra.usedQueue = {}, tool.setEvent("tick", null)));
     }));
-    addTool(new OWOP.tool.class('Gradient Cursor', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Gradient Cursor', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
 
     }));
-    addTool(new OWOP.tool.class('Gradient Wand', OWOP.cursors.wand, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Gradient Wand', OWOP.cursors.wand, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       var start = undefined;
       var end = undefined;
       var queue = [];
@@ -1417,10 +1421,10 @@ function install() {
         tool.setEvent('tick', null);
       });
     }));
-    addTool(new OWOP.tool.class('Gradient Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Gradient Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
 
     }));
-    addTool(new OWOP.tool.class('Queue Adder', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Queue Adder', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.setFxRenderer((fx, ctx, time) => {
         if (!fx.extra.isLocalPlayer) return 1;
         var x = fx.extra.player.x;
@@ -1554,40 +1558,20 @@ function install() {
         } else if (mouse.buttons === 2 && tool.extra.end && isInside()) {
           tool.extra.start = undefined;
           tool.extra.end = undefined;
-          let test = false;
-          // (s[0], s[1], e[0] - s[0], e[1] - s[1])
           let x = s[0];
           let y = s[1];
           let w = e[0] - s[0];
           let h = e[1] - s[1];
-          let totalAdded = 0;
-          let limit = 50;
           for (var i = x; i < x + w; i++) {
             for (var j = y; j < y + h; j++) {
               var pix = OWOP.world.getPixel(i, j);
               if (!PM.queue[`${i},${j}`]) PM.setPixel(i, j, pix);
-              // if (totalAdded >= limit) continue;
-              // var pix = OWOP.world.getPixel(i, j);
-              // if (!pix) continue;
-              // for (let k = 0; k < OWOP.player.palette.length; k++) {
-              //   var c = OWOP.player.palette[k];
-              //   if (c[0] == pix[0] && c[1] == pix[1] && c[2] == pix[2]) {
-              //     test = true;
-              //     break;
-              //   }
-              // }
-              // if (test) {
-              //   test = false;
-              //   continue;
-              // }
-              // OWOP.player.palette.push(pix);
-              // totalAdded++;
             }
           }
         }
       });
     }));
-    addTool(new OWOP.tool.class('Queue Filler', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Queue Filler', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.setFxRenderer((fx, ctx, time) => {
         if (!fx.extra.isLocalPlayer) return 1;
         var x = fx.extra.player.x;
@@ -1721,41 +1705,20 @@ function install() {
         } else if (mouse.buttons === 2 && tool.extra.end && isInside()) {
           tool.extra.start = undefined;
           tool.extra.end = undefined;
-          let test = false;
-          // (s[0], s[1], e[0] - s[0], e[1] - s[1])
           let x = s[0];
           let y = s[1];
           let w = e[0] - s[0];
           let h = e[1] - s[1];
-          let totalAdded = 0;
-          let limit = 50;
           var pix = OWOP.player.selectedColor;
           for (var i = x; i < x + w; i++) {
             for (var j = y; j < y + h; j++) {
-              // var pix = OWOP.world.getPixel(i, j);
               PM.setPixel(i, j, pix);
-              // if (totalAdded >= limit) continue;
-              // var pix = OWOP.world.getPixel(i, j);
-              // if (!pix) continue;
-              // for (let k = 0; k < OWOP.player.palette.length; k++) {
-              //   var c = OWOP.player.palette[k];
-              //   if (c[0] == pix[0] && c[1] == pix[1] && c[2] == pix[2]) {
-              //     test = true;
-              //     break;
-              //   }
-              // }
-              // if (test) {
-              //   test = false;
-              //   continue;
-              // }
-              // OWOP.player.palette.push(pix);
-              // totalAdded++;
             }
           }
         }
       });
     }));
-    addTool(new OWOP.tool.class('Queue Clearer', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Queue Clearer', OWOP.cursors.select, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.setFxRenderer((fx, ctx, time) => {
         if (!fx.extra.isLocalPlayer) return 1;
         var x = fx.extra.player.x;
@@ -1889,40 +1852,19 @@ function install() {
         } else if (mouse.buttons === 2 && tool.extra.end && isInside()) {
           tool.extra.start = undefined;
           tool.extra.end = undefined;
-          let test = false;
-          // (s[0], s[1], e[0] - s[0], e[1] - s[1])
           let x = s[0];
           let y = s[1];
           let w = e[0] - s[0];
           let h = e[1] - s[1];
-          let totalAdded = 0;
-          let limit = 50;
           for (var i = x; i < x + w; i++) {
             for (var j = y; j < y + h; j++) {
-              var pix = OWOP.world.getPixel(i, j);
               PM.unsetPixel(i, j);
-              // if (totalAdded >= limit) continue;
-              // var pix = OWOP.world.getPixel(i, j);
-              // if (!pix) continue;
-              // for (let k = 0; k < OWOP.player.palette.length; k++) {
-              //   var c = OWOP.player.palette[k];
-              //   if (c[0] == pix[0] && c[1] == pix[1] && c[2] == pix[2]) {
-              //     test = true;
-              //     break;
-              //   }
-              // }
-              // if (test) {
-              //   test = false;
-              //   continue;
-              // }
-              // OWOP.player.palette.push(pix);
-              // totalAdded++;
             }
           }
         }
       });
     }));
-    addTool(new OWOP.tool.class('Paste', OWOP.cursors.paste, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Paste', OWOP.cursors.paste, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       let c = document.createElement('canvas');
       c.width = 0;
       c.height = 0;
@@ -2005,26 +1947,17 @@ function install() {
           }
         }
       });
-      function move(x, y, startX, startY) {
-        cR.moveCameraBy((startX - x) / 16, (startY - y) / 16);
-      }
       tool.setEvent('mousemove', (mouse, event) => {
+        if (!OWOP.OPM) return;
         if (mouse.buttons !== 0) {
-          move(mouse.worldX, mouse.worldY, mouse.mouseDownWorldX, mouse.mouseDownWorldY);
+          ((x, y, startX, startY) => {
+            OWOP.require("canvas_renderer").moveCameraBy((startX - x) / 16, (startY - y) / 16);
+          })(mouse.worldX, mouse.worldY, mouse.mouseDownWorldX, mouse.mouseDownWorldY);
           return mouse.buttons;
         }
       });
-      tool.setEvent('scroll', (mouse, event, rawEvent) => {
-        if (!rawEvent.ctrlKey) {
-          var dx = Math.max(-500, Math.min(event.spinX * 16, 500));
-          var dy = Math.max(-500, Math.min(event.spinY * 16, 500));
-          var pxAmount = Math.max(OWOP.camera.zoom, 2);
-          cR.moveCameraBy(dx / pxAmount, dy / pxAmount);
-          return true;
-        }
-      });
     }));
-    addTool(new OWOP.tool.class('Copy', OWOP.cursors.copy, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Copy', OWOP.cursors.copy, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.setFxRenderer((fx, ctx, time) => {
         if (!fx.extra.isLocalPlayer) return 1;
         var x = fx.extra.player.x;
@@ -2157,7 +2090,28 @@ function install() {
         } else if (mouse.buttons === 2 && tool.extra.end && isInside()) {
           tool.extra.start = undefined;
           tool.extra.end = undefined;
-          var cvs = dlarea(s[0], s[1], e[0] - s[0], e[1] - s[1], b => {
+          ((x, y, w, h, onblob) => {
+            var c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            var ctx = c.getContext('2d');
+            var d = ctx.createImageData(w, h);
+            for (var i = y; i < y + h; i++) {
+              for (var j = x; j < x + w; j++) {
+                let pix;
+                if ((pix = OWOP.world.getPixel(j, i), !pix)) {
+                  console.warn("Well something happened, you probably tried getting an area outside of loaded chunks.");
+                  pix = [255, 255, 255];
+                }
+                d.data[4 * ((i - y) * w + (j - x))] = pix[0];
+                d.data[4 * ((i - y) * w + (j - x)) + 1] = pix[1];
+                d.data[4 * ((i - y) * w + (j - x)) + 2] = pix[2];
+                d.data[4 * ((i - y) * w + (j - x)) + 3] = 255;
+              }
+            }
+            ctx.putImageData(d, 0, 0);
+            c.toBlob(onblob);
+          })(s[0], s[1], e[0] - s[0], e[1] - s[1], b => {
             var url = URL.createObjectURL(b);
             var img = new Image();
             img.onload = () => {
@@ -2169,7 +2123,7 @@ function install() {
         }
       });
     }));
-    addTool(new OWOP.tool.class('Write', OWOP.cursors.write, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
+    OWOP.tool.addToolObject(new OWOP.tool.class('Write', OWOP.cursors.write, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.text = "211111211111122111112111111211111111111111211111111121111111111222211111121111112222111211111121112111112111111221111121111112211111111111111112111111211111111111112111111211111111112222222110001110000111100011100001110000011000001110000110121011000001222210110111011012222101110110111011100011100001111000111000011110000110000011012101101210110101011011101101210110000012222222101110110111011011101101110110111111011111101111110111011110111222210110110111012222100100110011011011101101110110111011011101101111111101111012101101110110101011101011101110111110112222222100000110000111012111101210110000011000001101000110000012210122111210110001121012222101010110101011012101100001110101011000011110001122101221012101110101110101012110112110101121101122222222101110110111011011101101110110111111011111101110110111011110111101110110110111011111101110110110011011101101111210110111011101111110122101221011101210101210101011101011211011211011112222222101210110000111100011100001110000011012222110001110121011000001110001110111011000001101210110111011100011101222211001011012101100001122101221100011211011211010111011101221012210000012222222111211111111122111112111111211111111112222211111211121111111111211111211121111111111111211111121112111112111222221111111112111111111222111222111112221112221111121112111221112211111112222222111111111211111111111111111111111111111111111111112222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222100011001210001100011010110001100011000110001100012222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222101011101211101111011010110111101111110110101101012222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222101012101210001100011000110001100012210110001100012222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222101011101110111111011110111101101012210110101111012222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222100011000110001100012210110001100012210110001100012222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222111111111111111111112211111111111112211111111111112222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222";
       tool.extra.position = 0;
       tool.extra.start = undefined;
@@ -2379,7 +2333,7 @@ function install() {
             var img = new Image();
             var saveButton = undefined;
             img.onload = () => {
-              windowSys.addWindow(new GUIWindow("Resulting image", {
+              OWOP.windowSys.addWindow(new GUIWindow("Resulting image", {
                 centerOnce: true,
                 closeable: true
               }, function (win) {
@@ -2650,125 +2604,19 @@ function install() {
       return result;
     }
   }
-  if (document.domain) {
-    let element1 = document.createElement("span");
-    element1.className = "top-bar";
-    element1.style.float = "right";
-    element1.style.width = "34px";
-    element1.style.height = "17px";
-    element1.style.background = "#FFFFFF";
-    if (localStorage.rSC) {
-      let arr = JSON.parse(localStorage.rSC);
-      element1.style.background = `#${arr[0].toString(16).padStart(2, "0")}${arr[1].toString(16).padStart(2, "0")}${arr[2].toString(16).padStart(2, "0")}`;
-    }
-    let element2 = document.createElement("span");
-    element2.className = "top-bar";
-    element2.style.float = "right";
-    element2.textContent = "Right Color:";
-    let element3 = document.createElement("span");
-    element3.className = "top-bar";
-    element3.style.float = "right";
-    element3.textContent = "Your ID: null";
-    OWOP.elements.topBar.appendChild(element1);
-    OWOP.elements.topBar.appendChild(element2);
-    OWOP.elements.topBar.appendChild(element3);
-    document.getElementById("playercount-display").style.marginRight = "45px";
-    setInterval(() => {
-      let arr = OWOP.player.rightSelectedColor;
-      element1.style.background = rgb(...arr);
-      element3.textContent = `Your ID:${OWOP.player.id}`;
-    }, 10);
 
-    // teleport detector
-    OWOP.playerList = {};
-    function tick() {
-      let players = OWOP.require("main").playerList;
-      let playersFixed = {};
-      playersFixed[OWOP.player.id] = {
-        id: OWOP.player.id,
-        x: OWOP.mouse.tileX,
-        y: OWOP.mouse.tileY
-      };
-      for (let player in players) {
-        let n = players[player].childNodes;
-        playersFixed[n[0].innerHTML] = {
-          id: ~~n[0].innerHTML,
-          x: ~~n[1].innerHTML,
-          y: ~~n[2].innerHTML
-        }
-      }
-      players = playersFixed;
-      // check if the local copy has a disconnected player
-      for (let p1 in OWOP.playerList) {
-        let test = false;
-        for (let p2 in players) {
-          if (p1 === p2) {
-            test = true;
-            break;
-          }
-        }
-        if (!test) {
-          delete OWOP.playerList[p1];
-          //OWOP.chat.local(`${p1} has left.`);
-        }
-      }
-      // check if the main copy has new players
-      for (let p1 in players) {
-        let test = false;
-        for (let p2 in OWOP.playerList) {
-          if (p1 === p2) {
-            test = true;
-            break;
-          }
-        }
-        if (!test) {
-          let p = players[p1];
-          OWOP.playerList[p.id] = {
-            id: p.id,
-            x: p.x,
-            y: p.y
-          }
-          //OWOP.chat.local(`${p1} has joined.`);
-        }
-      }
-      // check for a teleport
-      var banlist = [];
-      for (let player in players) {
-        let p1 = OWOP.playerList[player];
-        let p2 = players[player];
-
-        if (Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) > 2000) {
-          //console.log("someone teleported", p2.id,  p2.x, p2.y);
-          p1.tp = !isNaN(p1.tp) ? p1.tp + 1 : 1;
-          //if (!p1.ban && p1.tp < 10) OWOP.chat.local(`${player} Teleported from ${p1.x} ${p1.y} to ${p2.x} ${p2.y}`);
-        }
-        p1.x = p2.x;
-        p1.y = p2.y;
-      }
-      return players;
-    }
-    setInterval(tick, 10);
-    setInterval(() => {
-      for (let player in OWOP.playerList) {
-        let p1 = OWOP.playerList[player];
-        if (p1.tp >= 10) p1.ban = true;
-        p1.tp = 0;
-      }
-    }, 10 * 1000);
+  {
     setInterval(() => {
       let k = document.getElementById("chat-messages").children;
       for (let i = 0; i < k.length; i++) {
         let t = k[i].innerHTML;
         let id = OWOP.player.id;
         var hasClass = t.classList !== undefined ? Array.from(t.classList).indexOf('nK') > -1 : false;
-        if (!t.match(`(\\[${id}\\]: )|(${id}: )`) && !!t.match(`${id}`) && !hasClass) k[i].style = "background: #FF404059;";
+        if (!t.match(`(\\[${id}\\]: )|(${id}: )`) && t.match(`${id}`) && !hasClass) k[i].style = "background: #FF404059;";
       }
     }, 100);
-
     OWOP.windowSys.class.window.prototype.move = (function (t, e) { document.getElementById('windows').appendChild(this.frame); document.getElementById('windows').appendChild(OWOP.windowSys.windows.Tools.frame); return this.opt.immobile || (this.frame.style.transform = "translate(" + t + "px," + e + "px)", this.x = t, this.y = e), this });
     Object.keys(OWOP.windowSys.windows).forEach(e => OWOP.windowSys.windows[e].move = (function (t, e) { document.getElementById('windows').appendChild(this.frame); document.getElementById('windows').appendChild(OWOP.windowSys.windows.Tools.frame); return this.opt.immobile || (this.frame.style.transform = "translate(" + t + "px," + e + "px)", this.x = t, this.y = e), this }));
-
-    { let e = document.querySelector("div[id='arc-widget-container']"); !!e ? e.parentElement.removeChild(e) : void 0; }
 
     const toolSetURL = `data:image/png;base64,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`
 
@@ -2958,13 +2806,131 @@ function install() {
     load();
   }
 
+  if (document.domain && OWOP.OPM) {
+    let element1 = document.createElement("span");
+    element1.className = "top-bar";
+    element1.style.float = "right";
+    element1.style.width = "34px";
+    element1.style.height = "17px";
+    element1.style.background = "#FFFFFF";
+    if (localStorage.rSC) {
+      let arr = JSON.parse(localStorage.rSC);
+      element1.style.background = `#${arr[0].toString(16).padStart(2, "0")}${arr[1].toString(16).padStart(2, "0")}${arr[2].toString(16).padStart(2, "0")}`;
+    }
+    let element2 = document.createElement("span");
+    element2.className = "top-bar";
+    element2.style.float = "right";
+    element2.textContent = "Right Color:";
+    let element3 = document.createElement("span");
+    element3.className = "top-bar";
+    element3.style.float = "right";
+    element3.textContent = "Your ID: null";
+    OWOP.elements.topBar.appendChild(element1);
+    OWOP.elements.topBar.appendChild(element2);
+    OWOP.elements.topBar.appendChild(element3);
+    document.getElementById("playercount-display").style.marginRight = "45px";
+    setInterval(() => {
+      let arr = OWOP.player.rightSelectedColor;
+      element1.style.background = rgb(...arr);
+      element3.textContent = `Your ID:${OWOP.player.id}`;
+    }, 10);
+
+    // teleport detector
+    OWOP.playerList = {};
+    function tick() {
+      let players = OWOP.require("main").playerList;
+      let playersFixed = {};
+      playersFixed[OWOP.player.id] = {
+        id: OWOP.player.id,
+        x: OWOP.mouse.tileX,
+        y: OWOP.mouse.tileY
+      };
+      for (let player in players) {
+        let n = players[player].childNodes;
+        playersFixed[n[0].innerHTML] = {
+          id: ~~n[0].innerHTML,
+          x: ~~n[1].innerHTML,
+          y: ~~n[2].innerHTML
+        }
+      }
+      players = playersFixed;
+      // check if the local copy has a disconnected player
+      for (let p1 in OWOP.playerList) {
+        let test = false;
+        for (let p2 in players) {
+          if (p1 === p2) {
+            test = true;
+            break;
+          }
+        }
+        if (!test) {
+          delete OWOP.playerList[p1];
+          //OWOP.chat.local(`${p1} has left.`);
+        }
+      }
+      // check if the main copy has new players
+      for (let p1 in players) {
+        let test = false;
+        for (let p2 in OWOP.playerList) {
+          if (p1 === p2) {
+            test = true;
+            break;
+          }
+        }
+        if (!test) {
+          let p = players[p1];
+          OWOP.playerList[p.id] = {
+            id: p.id,
+            x: p.x,
+            y: p.y
+          }
+          //OWOP.chat.local(`${p1} has joined.`);
+        }
+      }
+      // check for a teleport
+      var banlist = [];
+      for (let player in players) {
+        let p1 = OWOP.playerList[player];
+        let p2 = players[player];
+
+        if (Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) > 2000) {
+          //console.log("someone teleported", p2.id,  p2.x, p2.y);
+          p1.tp = !isNaN(p1.tp) ? p1.tp + 1 : 1;
+          //if (!p1.ban && p1.tp < 10) OWOP.chat.local(`${player} Teleported from ${p1.x} ${p1.y} to ${p2.x} ${p2.y}`);
+        }
+        p1.x = p2.x;
+        p1.y = p2.y;
+      }
+      return players;
+    }
+    setInterval(tick, 10);
+    setInterval(() => {
+      for (let player in OWOP.playerList) {
+        let p1 = OWOP.playerList[player];
+        if (p1.tp >= 10) p1.ban = true;
+        p1.tp = 0;
+      }
+    }, 10 * 1000);
+
+
+    // it gets in the way of reading chat, im not trying to be mean to arc.
+    { let e = document.querySelector("div[id='arc-widget-container']"); e ? e.parentElement.removeChild(e) : void 0; }
+  }
+  if (document.domain && !OWOP.OPM) {
+    let r = 0;
+    for (let e in OWOP.tool.allTools) {
+      e = OWOP.tool.allTools[e];
+      if (e.rankRequired < 2) r++;
+    }
+    document.getElementById("toole-container").style.maxWidth = 40 * Math.ceil(r / 8) + "px";
+  }
   console.timeEnd("Neko");
   console.log("Neko's Scripts Loaded.");
 }
 
 function init() {
   let x = document.getElementById("load-scr");
-  if (!!x && !!x.style.transform) {
+  if (x && x.style.transform) {
     install();
   } else {
     setTimeout(init, 100);
