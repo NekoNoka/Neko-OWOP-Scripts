@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.9.1
+// @version      0.9.1.1
 // @description  Scripts for opm
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -584,11 +584,14 @@ function install() {
             for (var i = y; i < y + h; i++) {
               for (var j = x; j < x + w; j++) {
                 let pix;
-                if ((pix = PM.queue[`${j},${i}`].c.c, !pix)) {
+                let tempPix = PM.queue[`${j},${i}`];
+                if (!tempPix) {
                   if ((pix = PM.getPixel(j, i), !pix)) {
                     console.warn("Well something happened, you probably tried getting an area outside of loaded chunks.");
                     pix = [255, 255, 255];
                   }
+                } else {
+                  pix = tempPix.c.c;
                 }
                 d.data[4 * ((i - y) * w + (j - x))] = pix[0];
                 d.data[4 * ((i - y) * w + (j - x)) + 1] = pix[1];
