@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.9.0
+// @version      0.9.1
 // @description  Scripts for opm
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -92,10 +92,23 @@ function install() {
       }
     }
     setPixel(x, y, c, placeOnce = false) { // make checks for all variables coming in to make sure nothing is incorrectly set and c 4th element is either undefined or 255 otherwise drop the set
+      if (!Number.isInteger(x) || !Number.isInteger(y)) return false;
+      if (!Array.isArray(c) || c.length < 3 || c.length > 4) return false;
+      if (c.length == 4) c.pop();
+      if (c.find(e => !Number.isInteger(e) || e < 0 || e > 255) !== undefined) return false;
       let p = new Pixel(x, y, c);
       if (placeOnce) p.o = true;
       this.addPixels(p);
       return true;
+    }
+    getPixel(x, y) {
+      // if (!Object.keys(OWOP.world).includes("_getPixel")) return undefined;
+      try {
+        OWOP.world.getPixel;
+      } catch (e) {
+        return undefined;
+      }
+      return OWOP.world.getPixel(x, y);
     }
     addPixels() {
       for (let i = 0; i < arguments.length; i++) {
@@ -108,19 +121,16 @@ function install() {
         let e = this.extra.placeData[i][1];
         let tX = OWOP.mouse.tileX;
         let tY = OWOP.mouse.tileY;
-        // let p1 = new Point(tX + e.x, tY + e.y);
-        // if (Point.distance(p1, p2) > 32) continue; // originally needed but fixed in constructor
         let pixel = this.queue[`${tX + e.x},${tY + e.y}`];
         if (!pixel) continue;
-        if (pixel.c[3] !== undefined && pixel.c[3] !== 255 && (this.deletePixels(pixel), true)) continue;
         let xchunk = Math.floor(pixel.x / 16);
         let ychunk = Math.floor(pixel.y / 16);
-        //if (!OWOP.misc._world) continue;
-        //if (OWOP.misc._world.protectedChunks[`${xchunk},${ychunk}`] && (this.deletePixels(pixel), true)) continue;
+        if (OWOP.OPM && !OWOP.misc._world) continue;
+        if (OWOP.OPM && OWOP.misc._world.protectedChunks[`${xchunk},${ychunk}`] && (this.deletePixels(pixel), true)) continue;
         let xcc = Math.floor(tX / 16) * 16;
         let ycc = Math.floor(tY / 16) * 16;
         if (pixel.x < (xcc - 31) || pixel.y < (ycc - 31) || pixel.x > (xcc + 46) || pixel.y > (ycc + 46)) continue;
-        let color = OWOP.world.getPixel(pixel.x, pixel.y);
+        let color = this.getPixel(pixel.x, pixel.y);
         if (!color) continue;
         let c = new Color(color);
         if (!Color.compare(pixel.c, c)) return OWOP.world.setPixel(pixel.x, pixel.y, pixel.c.c);
@@ -260,7 +270,7 @@ function install() {
       tool.setEvent('mousedown mousemove', (mouse, event) => {
         if (mouse.buttons !== 2 && mouse.buttons !== 1) return 3;
         if (tool.extra.lastX == mouse.tileX && tool.extra.lastY == mouse.tileY) return 3;
-        if (event && event.ctrlKey) return setColor(mouse.buttons, OWOP.world.getPixel(mouse.tileX, mouse.tileY));
+        if (event && event.ctrlKey) return setColor(mouse.buttons, PM.getPixel(mouse.tileX, mouse.tileY));
         let c = mouse.buttons === 1 ? OWOP.player.selectedColor : OWOP.player.rightSelectedColor;
         if (isNaN(tool.extra.lastX) || isNaN(tool.extra.lastY)) {
           tool.extra.lastX = mouse.tileX;
@@ -418,7 +428,7 @@ function install() {
     }));
     OWOP.tool.addToolObject(new OWOP.tool.class('Pipette', OWOP.cursors.pipette, OWOP.fx.player.NONE, OWOP.RANK.NONE, tool => {
       tool.setEvent('mousedown mousemove', mouse => {
-        var c = OWOP.world.getPixel(mouse.tileX, mouse.tileY);
+        var c = PM.getPixel(mouse.tileX, mouse.tileY);
         if (!c) return mouse.buttons;
         switch (mouse.buttons) {
           case 1:
@@ -574,8 +584,8 @@ function install() {
             for (var i = y; i < y + h; i++) {
               for (var j = x; j < x + w; j++) {
                 let pix;
-                if ((pix = PM.queue[`${j},${i}`], !pix)) {
-                  if ((pix = OWOP.world.getPixel(j, i), !pix)) {
+                if ((pix = PM.queue[`${j},${i}`].c.c, !pix)) {
+                  if ((pix = PM.getPixel(j, i), !pix)) {
                     console.warn("Well something happened, you probably tried getting an area outside of loaded chunks.");
                     pix = [255, 255, 255];
                   }
@@ -658,7 +668,7 @@ function install() {
       tool.extra.fillingColor = undefined;
 
       const isSame = (a, b) => a && b && a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
-      const isFillColor = (x, y) => isSame(OWOP.world.getPixel(x, y), tool.extra.fillingColor) && (!tool.extra.usedQueue[`${x},${y}`]) && (tool.extra.queue[`${x},${y}`] = { x: x, y: y }, true);
+      const isFillColor = (x, y) => isSame(PM.getPixel(x, y), tool.extra.fillingColor) && (!tool.extra.usedQueue[`${x},${y}`]) && (tool.extra.queue[`${x},${y}`] = { x: x, y: y }, true);
 
       function tick() {
         var selClr = OWOP.player.selectedColor;
@@ -666,7 +676,7 @@ function install() {
           current = tool.extra.queue[current];
           var x = current.x;
           var y = current.y;
-          var thisClr = OWOP.world.getPixel(x, y);
+          var thisClr = PM.getPixel(x, y);
           if (isSame(thisClr, tool.extra.fillingColor) && !isSame(thisClr, selClr)) {
             PM.setPixel(x, y, selClr);
 
@@ -696,7 +706,7 @@ function install() {
         }
         ctx.stroke();
       });
-      tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = OWOP.world.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.setEvent("tick", tick)));
+      tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = PM.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.setEvent("tick", tick)));
       tool.setEvent("mouseup deselect", mouse => mouse && 1 & mouse.buttons || (tool.extra.fillingColor = undefined, tool.extra.queue = {}, tool.extra.usedQueue = {}, tool.setEvent("tick", null)));
     }));
     OWOP.tool.addToolObject(new OWOP.tool.class('Line', OWOP.cursors.wand, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
@@ -769,7 +779,7 @@ function install() {
             let xchunk = Math.floor(OWOP.mouse.tileX / 16) * 16; // top left corner of the chunk not the chunk number
             let ychunk = Math.floor(OWOP.mouse.tileY / 16) * 16;
             let a;
-            if ((a = new Color(OWOP.world.getPixel(xchunk + x, ychunk + y)), !a.c)) continue;
+            if ((a = new Color(PM.getPixel(xchunk + x, ychunk + y)), !a.c)) continue;
             let test = true;
             for (let p = 0; p < OWOP.player.palette.length; p++) {
               let c = new Color(OWOP.player.palette[p]);
@@ -797,7 +807,7 @@ function install() {
       tool.setEvent('mousedown mousemove', (mouse, event) => {
         if (mouse.buttons !== 2 && mouse.buttons !== 1) return 3;
         if (tool.extra.lastX == mouse.tileX && tool.extra.lastY == mouse.tileY) return 3;
-        if (event && event.ctrlKey) return setColor(mouse.buttons, OWOP.world.getPixel(mouse.tileX, mouse.tileY));
+        if (event && event.ctrlKey) return setColor(mouse.buttons, PM.getPixel(mouse.tileX, mouse.tileY));
         var c = mouse.buttons === 1 ? OWOP.player.selectedColor : OWOP.player.rightSelectedColor;
         if (isNaN(tool.extra.lastX) || isNaN(tool.extra.lastY)) {
           tool.extra.lastX = mouse.tileX;
@@ -836,14 +846,11 @@ function install() {
             }
           }
           // place the pixel
-          // var pixel = OWOP.world.getPixel(tool.extra.last1PX, tool.extra.last1PY);
-          // if (pixel !== null) {
           PM.setPixel(tool.extra.last1PX, tool.extra.last1PY, c);
           tool.extra.last2PX = tool.extra.last1PX;
           tool.extra.last2PY = tool.extra.last1PY;
           tool.extra.last1PX = x;
           tool.extra.last1PY = y;
-          // }
         });
         tool.extra.lastX = mouse.tileX;
         tool.extra.lastY = mouse.tileY;
@@ -1147,7 +1154,7 @@ function install() {
           for (var i = x; i < x + w; i++) {
             for (var j = y; j < y + h; j++) {
               if (totalAdded >= limit) continue;
-              var pix = OWOP.world.getPixel(i, j);
+              var pix = PM.getPixel(i, j);
               if (!pix) continue;
               for (let k = 0; k < OWOP.player.palette.length; k++) {
                 var c = OWOP.player.palette[k];
@@ -1177,14 +1184,14 @@ function install() {
       tool.setEvent('mousedown mousemove', (mouse, event) => {
         if (mouse.buttons !== 2 && mouse.buttons !== 1) return 3;
         if (tool.extra.lastX == mouse.tileX && tool.extra.lastY == mouse.tileY) return 3;
-        if (event && event.ctrlKey) return setColor(mouse.buttons, OWOP.world.getPixel(mouse.tileX, mouse.tileY));
+        if (event && event.ctrlKey) return setColor(mouse.buttons, PM.getPixel(mouse.tileX, mouse.tileY));
         if (isNaN(tool.extra.lastX) || isNaN(tool.extra.lastY)) {
           tool.extra.lastX = mouse.tileX;
           tool.extra.lastY = mouse.tileY;
         }
         line(tool.extra.lastX, tool.extra.lastY, mouse.tileX, mouse.tileY, undefined, event, (x, y) => {
           let pixel;
-          if ((pixel = new Color(OWOP.world.getPixel(x, y)), !pixel.c)) return;
+          if ((pixel = new Color(PM.getPixel(x, y)), !pixel.c)) return;
           var color = new Color(mouse.buttons === 1 ? hue(x - y) : hue(tool.extra.c++)); // hue(tool.extra.c++);
           if (!Color.compare(pixel, color)) PM.setPixel(x, y, color.c);
         });
@@ -1243,7 +1250,7 @@ function install() {
       tool.extra.fillingColor = undefined;
 
       const isSame = (a, b) => a && b && a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
-      const isFillColor = (x, y) => isSame(OWOP.world.getPixel(x, y), tool.extra.fillingColor) && (!tool.extra.usedQueue[`${x},${y}`]) && (tool.extra.queue[`${x},${y}`] = { x: x, y: y }, true);
+      const isFillColor = (x, y) => isSame(PM.getPixel(x, y), tool.extra.fillingColor) && (!tool.extra.usedQueue[`${x},${y}`]) && (tool.extra.queue[`${x},${y}`] = { x: x, y: y }, true);
 
       function tick() {
         for (var current in tool.extra.queue) {
@@ -1251,7 +1258,7 @@ function install() {
           var x = current.x;
           var y = current.y;
           var selClr = hue(x - y);
-          var thisClr = OWOP.world.getPixel(x, y);
+          var thisClr = PM.getPixel(x, y);
           if (isSame(thisClr, tool.extra.fillingColor) && !isSame(thisClr, selClr)) {
             PM.setPixel(x, y, selClr);
 
@@ -1281,7 +1288,7 @@ function install() {
         }
         ctx.stroke();
       });
-      tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = OWOP.world.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.setEvent("tick", tick)));
+      tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = PM.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.setEvent("tick", tick)));
       tool.setEvent("mouseup deselect", mouse => mouse && 1 & mouse.buttons || (tool.extra.fillingColor = undefined, tool.extra.queue = {}, tool.extra.usedQueue = {}, tool.setEvent("tick", null)));
     }));
     OWOP.tool.addToolObject(new OWOP.tool.class('Checkered Fill', OWOP.cursors.fill, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
@@ -1291,7 +1298,7 @@ function install() {
       tool.extra.checkered = undefined;
 
       const isSame = (a, b) => a && b && a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
-      const isFillColor = (x, y) => isSame(OWOP.world.getPixel(x, y), tool.extra.fillingColor) && (!tool.extra.usedQueue[`${x},${y}`]) && (tool.extra.queue[`${x},${y}`] = { x: x, y: y }, true);
+      const isFillColor = (x, y) => isSame(PM.getPixel(x, y), tool.extra.fillingColor) && (!tool.extra.usedQueue[`${x},${y}`]) && (tool.extra.queue[`${x},${y}`] = { x: x, y: y }, true);
 
       function tick() {
         var selClr = OWOP.player.selectedColor;
@@ -1299,7 +1306,7 @@ function install() {
           current = tool.extra.queue[current];
           var x = current.x;
           var y = current.y;
-          var thisClr = OWOP.world.getPixel(x, y);
+          var thisClr = PM.getPixel(x, y);
           if (isSame(thisClr, tool.extra.fillingColor) && !isSame(thisClr, selClr)) {
             if ((x + y) - 2 * Math.floor((x + y) / 2) == tool.extra.checkered) PM.setPixel(x, y, selClr);
 
@@ -1332,7 +1339,7 @@ function install() {
         }
         ctx.stroke();
       });
-      tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = OWOP.world.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.extra.checkered = (mouse.tileX + mouse.tileY) - 2 * Math.floor((mouse.tileX + mouse.tileY) / 2), tool.setEvent("tick", tick)));
+      tool.setEvent("mousedown", mouse => 4 & mouse.buttons || (tool.extra.fillingColor = PM.getPixel(mouse.tileX, mouse.tileY)) && (tool.extra.queue[`${mouse.tileX},${mouse.tileY}`] = { x: mouse.tileX, y: mouse.tileY }, tool.extra.checkered = (mouse.tileX + mouse.tileY) - 2 * Math.floor((mouse.tileX + mouse.tileY) / 2), tool.setEvent("tick", tick)));
       tool.setEvent("mouseup deselect", mouse => mouse && 1 & mouse.buttons || (tool.extra.fillingColor = undefined, tool.extra.checkered = undefined, tool.extra.queue = {}, tool.extra.usedQueue = {}, tool.setEvent("tick", null)));
     }));
     OWOP.tool.addToolObject(new OWOP.tool.class('Gradient Cursor', OWOP.cursors.cursor, OWOP.fx.player.RECT_SELECT_ALIGNED(1), OWOP.RANK.USER, tool => {
@@ -1363,7 +1370,7 @@ function install() {
       function tick() {
         for (var painted = 0; painted < 3 && queue.length; painted++) {
           var current = queue.pop();
-          var c = OWOP.world.getPixel(current[0], current[1]);
+          var c = PM.getPixel(current[0], current[1]);
           if ((c[0] != current[2][0] || c[1] != current[2][1] || c[2] != current[2][2]) && !OWOP.world.setPixel(current[0], current[1], current[2])) {
             queue.push(current);
             break;
@@ -1398,7 +1405,7 @@ function install() {
           }
           if (OWOP.player.rank == OWOP.RANK.ADMIN) {
           } else {
-            let sc = OWOP.world.getPixel(start[0], start[1]);
+            let sc = PM.getPixel(start[0], start[1]);
             let pc = mouse.buttons === 2 ? OWOP.player.rightSelectedColor : OWOP.player.selectedColor;
             line(start[0], start[1], end[0], end[1], undefined, undefined, (x, y, i) => {
               let divisor = (lineLength - 1);
@@ -1564,8 +1571,8 @@ function install() {
           let h = e[1] - s[1];
           for (var i = x; i < x + w; i++) {
             for (var j = y; j < y + h; j++) {
-              var pix = OWOP.world.getPixel(i, j);
-              if (!PM.queue[`${i},${j}`]) PM.setPixel(i, j, pix);
+              var pix = PM.getPixel(i, j);
+              if (pix && !PM.queue[`${i},${j}`]) PM.setPixel(i, j, pix);
             }
           }
         }
@@ -1931,17 +1938,17 @@ function install() {
         let x = mouse.tileX;
         let y = mouse.tileY;
         let data = p1.getImageData(0, 0, c.width, c.height).data;
-        let fix = (p6, p7, p8) => p6 * (1 - p8) + p7 * p8;
+        let fix = (p6, p7, p8) => Math.floor(p6 * (1 - p8) + p7 * p8);
 
         for (let j = 0; j < c.height; j++) {
           for (let i = 0; i < c.width; i++) {
             let pD = (j * c.width + i) * 4;
-            let color = OWOP.world.getPixel(i + x, j + y);
+            let color = PM.getPixel(i + x, j + y);
             if (!color) continue;
             let pH = data[pD + 3] / 255;
             color = [fix(color[0], data[pD + 0], pH), fix(color[1], data[pD + 1], pH), fix(color[2], data[pD + 2], pH)];
             // use this when color is checked against being alpha color cause this is stupid
-            // var pix = OWOP.world.getPixel(i, j);
+            // var pix = PM.getPixel(i, j);
             // if (!PM.queue[`${i},${j}`]) PM.setPixel(i, j, pix);
             PM.setPixel(i + x, j + y, color);
           }
@@ -2099,7 +2106,7 @@ function install() {
             for (var i = y; i < y + h; i++) {
               for (var j = x; j < x + w; j++) {
                 let pix;
-                if ((pix = OWOP.world.getPixel(j, i), !pix)) {
+                if ((pix = PM.getPixel(j, i), !pix)) {
                   console.warn("Well something happened, you probably tried getting an area outside of loaded chunks.");
                   pix = [255, 255, 255];
                 }
