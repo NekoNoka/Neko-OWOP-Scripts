@@ -1,7 +1,7 @@
 This is for a specific website called https://www.ourworldofpixels.com
 
 I made this script so artists can make their art without having to worry about griefers
-Theres several features including new tools, ability to change the right click color, and others.
+Theres several features including new tools, ability to change the right click color, and pasting.
 
 This is mostly for my own enjoyment to see what I can make and to allow for artists to have an easier time making art.
 
