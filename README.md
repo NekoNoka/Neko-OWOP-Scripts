@@ -5,7 +5,7 @@ Theres several features including new tools, ability to change the right click c
 
 This is mostly for my own enjoyment to see what I can make and to allow for artists to have an easier time making art.
 
-Please leave suggestions on tools/features that I can add to make it better.
+Please create a new issue to leave suggestions on tools/features that I can add to make the script better.
 
 # Requirements
 
