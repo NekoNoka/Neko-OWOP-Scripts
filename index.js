@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.10.0
+// @version      0.10.1
 // @description  Scripts for opm
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -3342,7 +3342,7 @@ function install() {
 
     // it gets in the way of reading chat, im not trying to be mean to arc.
     { let e = document.querySelector("div[id='arc-widget-container']"); e ? e.parentElement.removeChild(e) : void 0; }
-    (function () {
+    if (NS.et) {
       clearInterval(OWOP.misc.tickInterval);
       OWOP.misc.tickIntervalNS = setInterval(O, 1e3 / OWOP.options.tickSpeed);
       function O() {
@@ -3378,7 +3378,7 @@ function install() {
           OWOP.elements.xyDisplay.innerHTML = "X: " + t + ", Y: " + e,
           !0)
       }
-    })()
+    }
   }
 
   NS.toggleWindow = toggleWindow;
@@ -3478,31 +3478,48 @@ function init() {
       }
     }
     let t = EventTarget._eventlists;
-    let down;
-    let up;
+    let down = [];
+    let up = [];
+    NS.etdown = false;
+    NS.etup = false;
+    NS.et = false;
     if (NS.OPM) {
-      down = 'function(t){var e=t.which||t.keyCode;if("TEXTAREA"!==document.activeElement.tagName&&"INPUT"!==document.activeElement.tagName&&null!==E.world){b[e]=!0;var n=f.player.tool;if(null!==n&&null!==E.world&&n.isEventDefined("keydown")&&n.call("keydown",[b,t]))return!1;switch(e){case 80:f.player.tool="pipette";break;case 79:f.player.tool="cursor";break;case 77:case 16:f.player.tool="move";break;case 90:if(!t.ctrlKey||!E.world)break;E.world.undo(t.shiftKey),t.preventDefault();break;case 70:var r=function(t){var e=t.split(","),n=null;if(3==e.length){n=e;for(var r=0;r<e.length;r++)\nif(e[r]=+e[r],!(e[r]>=0&&e[r]<256))return null}else if("#"==t[0]&&7==t.length){var o=parseInt(t.replace("#","0x"));n=[o>>16&255,o>>8&255,255&o]}\nreturn n},o=prompt("Custom color\\nType three values separated by a comma: r,g,b\\n(...or the hex string: #RRGGBB)\\nYou can add multiple colors at a time separating them with a space.");if(!o)break;o=o.split(" ");for(var i=0;i<o.length;i++){var a=r(o[i]);a&&(f.player.selectedColor=a)}\nbreak;case 71:u.renderer.showGrid(!u.renderer.gridShown);break;case 112:D(!E.guiShown),t.preventDefault();break;case 107:case 187:++u.camera.zoom;break;case 109:case 189:--u.camera.zoom;break;default:return!0}\nreturn!1}}';
-      up = 'function(t){var e=t.which||t.keyCode;if(delete b[e],"INPUT"!==document.activeElement.tagName){var n=f.player.tool;if(null!==n&&null!==E.world&&n.isEventDefined("keyup")&&n.call("keyup",[b,t]))return!1;13==e?k.chatInput.focus():16==e&&(f.player.tool="cursor")}}';
+      down.push('function(t) {\n              var e = t.which || t.keyCode;\n              if ("TEXTAREA" !== document.activeElement.tagName && "INPUT" !== document.activeElement.tagName && null !== E.world) {\n                  b[e] = !0;\n                  var n = f.player.tool;\n                  if (null !== n && null !== E.world && n.isEventDefined("keydown") && n.call("keydown", [b, t])) return !1;\n                  switch (e) {\n                      case 80:\n                          f.player.tool = "pipette";\n                          break;\n                      case 79:\n                          f.player.tool = "cursor";\n                          break;\n                      case 77:\n                      case 16:\n                          f.player.tool = "move";\n                          break;\n                      case 90:\n                          if (!t.ctrlKey || !E.world) break;\n                          E.world.undo(t.shiftKey), t.preventDefault();\n                          break;\n                      case 70:\n                          var r = function(t) {\n                                  var e = t.split(","),\n                                      n = null;\n                                  if (3 == e.length) {\n                                      n = e;\n                                      for (var r = 0; r < e.length; r++)\n                                          if (e[r] = +e[r], !(e[r] >= 0 && e[r] < 256)) return null\n                                  } else if ("#" == t[0] && 7 == t.length) {\n                                      var o = parseInt(t.replace("#", "0x"));\n                                      n = [o >> 16 & 255, o >> 8 & 255, 255 & o]\n                                  }\n                                  return n\n                              },\n                              o = prompt("Custom color\\nType three values separated by a comma: r,g,b\\n(...or the hex string: #RRGGBB)\\nYou can add multiple colors at a time separating them with a space.");\n                          if (!o) break;\n                          o = o.split(" ");\n                          for (var i = 0; i < o.length; i++) {\n                              var a = r(o[i]);\n                              a && (f.player.selectedColor = a)\n                          }\n                          break;\n                      case 71:\n                          u.renderer.showGrid(!u.renderer.gridShown);\n                          break;\n                      case 112:\n                          D(!E.guiShown), t.preventDefault();\n                          break;\n                      case 107:\n                      case 187:\n                          ++u.camera.zoom;\n                          break;\n                      case 109:\n                      case 189:\n                          --u.camera.zoom;\n                          break;\n                      default:\n                          return !0\n                  }\n                  return !1\n              }\n          }');
+      down.push('function(t){var e=t.which||t.keyCode;if("TEXTAREA"!==document.activeElement.tagName&&"INPUT"!==document.activeElement.tagName&&null!==E.world){b[e]=!0;var n=f.player.tool;if(null!==n&&null!==E.world&&n.isEventDefined("keydown")&&n.call("keydown",[b,t]))return!1;switch(e){case 80:f.player.tool="pipette";break;case 79:f.player.tool="cursor";break;case 77:case 16:f.player.tool="move";break;case 90:if(!t.ctrlKey||!E.world)break;E.world.undo(t.shiftKey),t.preventDefault();break;case 70:var r=function(t){var e=t.split(","),n=null;if(3==e.length){n=e;for(var r=0;r<e.length;r++)\nif(e[r]=+e[r],!(e[r]>=0&&e[r]<256))return null}else if("#"==t[0]&&7==t.length){var o=parseInt(t.replace("#","0x"));n=[o>>16&255,o>>8&255,255&o]}\nreturn n},o=prompt("Custom color\\nType three values separated by a comma: r,g,b\\n(...or the hex string: #RRGGBB)\\nYou can add multiple colors at a time separating them with a space.");if(!o)break;o=o.split(" ");for(var i=0;i<o.length;i++){var a=r(o[i]);a&&(f.player.selectedColor=a)}\nbreak;case 71:u.renderer.showGrid(!u.renderer.gridShown);break;case 112:D(!E.guiShown),t.preventDefault();break;case 107:case 187:++u.camera.zoom;break;case 109:case 189:--u.camera.zoom;break;default:return!0}\nreturn!1}}');
+      up.push('function(t) {\n              var e = t.which || t.keyCode;\n              if (delete b[e], "INPUT" !== document.activeElement.tagName) {\n                  var n = f.player.tool;\n                  if (null !== n && null !== E.world && n.isEventDefined("keyup") && n.call("keyup", [b, t])) return !1;\n                  13 == e ? k.chatInput.focus() : 16 == e && (f.player.tool = "cursor")\n              }\n          }');
+      up.push('function(t){var e=t.which||t.keyCode;if(delete b[e],"INPUT"!==document.activeElement.tagName){var n=f.player.tool;if(null!==n&&null!==E.world&&n.isEventDefined("keyup")&&n.call("keyup",[b,t]))return!1;13==e?k.chatInput.focus():16==e&&(f.player.tool="cursor")}}');
     } else {
-      //down = 'function(e){var t=e.which||e.keyCode;if("INPUT"!==document.activeElement.tagName&&null!==x.world){w[t]=!0;var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keydown")&&n.call("keydown",[w,e]))return!1;switch(t){case 80:d.player.tool="pipette";break;case 79:d.player.tool="cursor";break;case 77:case 16:d.player.tool="move";break;case 90:if(!e.ctrlKey||!x.world)break;x.world.undo(e.shiftKey),e.preventDefault();break;case 70:var o=function(e){var t=e.split(","),n=null;if(3==t.length){n=t;for(var o=0;o<t.length;o++)if(t[o]=+t[o],!(t[o]>=0&&t[o]<256))return null}else if("#"==e[0]&&7==e.length){var r=parseInt(e.replace("#","0x"));n=[r>>16&255,r>>8&255,255&r]}return n},r=prompt("Custom color\\nType three values separated by a comma: r,g,b\\n(...or the hex string: #RRGGBB)\\nYou can add multiple colors at a time separating them with a space.");if(!r)break;r=r.split(" ");for(var a=0;a<r.length;a++){var s=o(r[a]);s&&(d.player.selectedColor=s)}break;case 71:c.renderer.showGrid(!c.renderer.gridShown);break;case 72:i.options.showProtectionOutlines=!i.options.showProtectionOutlines,c.renderer.render(c.renderer.rendertype.FX);break;case 112:j(!x.guiShown),e.preventDefault();break;case 113:i.options.showPlayers=!i.options.showPlayers,c.renderer.render(c.renderer.rendertype.FX);break;case 107:case 187:++c.camera.zoom;break;case 109:case 189:--c.camera.zoom;break;default:return!0}return!1}}';
-      //up = 'function(e){var t=e.which||e.keyCode;if(delete w[t],"INPUT"!==document.activeElement.tagName){var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keyup")&&n.call("keyup",[w,e]))return!1;13==t?k.chatInput.focus():16==t&&(d.player.tool="cursor")}}';
+      //down.push('function(e){var t=e.which||e.keyCode;if("INPUT"!==document.activeElement.tagName&&null!==x.world){w[t]=!0;var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keydown")&&n.call("keydown",[w,e]))return!1;switch(t){case 80:d.player.tool="pipette";break;case 79:d.player.tool="cursor";break;case 77:case 16:d.player.tool="move";break;case 90:if(!e.ctrlKey||!x.world)break;x.world.undo(e.shiftKey),e.preventDefault();break;case 70:var o=function(e){var t=e.split(","),n=null;if(3==t.length){n=t;for(var o=0;o<t.length;o++)if(t[o]=+t[o],!(t[o]>=0&&t[o]<256))return null}else if("#"==e[0]&&7==e.length){var r=parseInt(e.replace("#","0x"));n=[r>>16&255,r>>8&255,255&r]}return n},r=prompt("Custom color\\nType three values separated by a comma: r,g,b\\n(...or the hex string: #RRGGBB)\\nYou can add multiple colors at a time separating them with a space.");if(!r)break;r=r.split(" ");for(var a=0;a<r.length;a++){var s=o(r[a]);s&&(d.player.selectedColor=s)}break;case 71:c.renderer.showGrid(!c.renderer.gridShown);break;case 72:i.options.showProtectionOutlines=!i.options.showProtectionOutlines,c.renderer.render(c.renderer.rendertype.FX);break;case 112:j(!x.guiShown),e.preventDefault();break;case 113:i.options.showPlayers=!i.options.showPlayers,c.renderer.render(c.renderer.rendertype.FX);break;case 107:case 187:++c.camera.zoom;break;case 109:case 189:--c.camera.zoom;break;default:return!0}return!1}}');
+      //up.push('function(e){var t=e.which||e.keyCode;if(delete w[t],"INPUT"!==document.activeElement.tagName){var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keyup")&&n.call("keyup",[w,e]))return!1;13==t?k.chatInput.focus():16==t&&(d.player.tool="cursor")}}');
     }
     for (let i = 0; i < t.length; i++) {
       let temp = t[i];
-      if (String(temp) === down) {
-        window.removeEventListener("keydown", temp);
-        down = true;
-        //console.log("found down", i);
-      } else if (String(temp) === up) {
-        window.removeEventListener("keyup", temp);
-        up = true
-        //console.log("found up", i);
+      if (NS.etdown !== true) for (let d in down) {
+        d = down[d];
+        if (String(temp) === d) {
+          NS.etdown = true;
+          NS.tempdown = temp;
+          console.log("found down", i);
+        }
+        if (NS.etdown === true) break;
       }
-      if (down === true && up === true) break;
+      if (NS.etup !== true) for (let u in up) {
+        u = up[u];
+        if (String(temp) === u) {
+          NS.etup = true
+          NS.tempup = temp;
+          console.log("found up", i);
+        }
+        if (NS.etup === true) break;
+      }
+      if (NS.etdown === true && NS.etup === true) break;
     }
-    if (down !== true) 1;//console.log("down was not found");
-    if (up !== true) 1;//console.log("up was not found");
-    if (down === true && up === true) {
+    if (NS.etdown !== true) console.warn("down was not found");
+    if (NS.etup !== true) console.warn("up was not found");
+    if (NS.etdown === true && NS.etup === true) {
+      NS.et = true;
+      window.removeEventListener("keydown", NS.tempdown);
+      window.removeEventListener("keyup", NS.tempup);
       window.addEventListener("keydown", keydown);
       window.addEventListener("keyup", keyup);
     }
