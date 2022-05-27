@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.10.1
-// @description  Scripts for opm
+// @version      0.10.2
+// @description  Client for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
 // @exclude      https://ourworldofpixels.com/api/*
@@ -262,7 +262,10 @@ function install() {
   NS.PixelManager = PixelManager;
   const PM = new PixelManager();
   NS.PM = PM;
-
+  NS.localStorage = localStorage.NS;
+  if (!NS.localStorage) {
+    localStorage.NS = "";
+  }
 
   OWOP.OPM = false;
   if (OWOP.misc) OWOP.OPM = true;
@@ -493,11 +496,18 @@ function install() {
           ctx.lineWidth = oldlinew;
           return 0;
         } else {
+          var x = fx.extra.player.x;
+          var y = fx.extra.player.y;
+          var fxx = Math.floor(x / 16);
+          var fxy = Math.floor(y / 16);
           if (NS.chunkize) {
             fxx = Math.floor(fxx / 16) * 16;
             fxy = Math.floor(fxy / 16) * 16;
           }
-
+          fxx -= camera.x;
+          fxy -= camera.y;
+          fxx *= camera.zoom;
+          fxy *= camera.zoom;
           ctx.beginPath();
           ctx.moveTo(0, fxy + 0.5);
           ctx.lineTo(window.innerWidth, fxy + 0.5);
@@ -645,6 +655,7 @@ function install() {
             var url = URL.createObjectURL(b);
             var img = new Image();
             img.onload = () => {
+              if (OWOP.windowSys.windows['Resulting image']) OWOP.windowSys.delWindow(OWOP.windowSys.windows['Resulting image']);
               OWOP.windowSys.addWindow(new GUIWindow("Resulting image", {
                 centerOnce: true,
                 closeable: true
@@ -938,7 +949,7 @@ function install() {
       });
       // change color positions
       tool.setEvent('keydown', event => {
-        if (event["87"] && event["83"]) return;
+        if (event["87"] && event["83"] || !event["16"]) return;
         if (event["87"]) { // w
           let i1 = OWOP.player.paletteIndex;
           let i2 = modulo(i1 - 1, OWOP.player.palette.length);
@@ -2388,98 +2399,212 @@ function install() {
     document.getElementById("toole-container").style.maxWidth = 40 * Math.ceil(r / 8) + "px";
   }
 
-  // palette saver
-  (function () {
-    let windowName = "Palette Saver";
-    let options = {
-      closeable: false
+  if (document.domain && NS.OPM) {
+    let element1 = document.createElement("span");
+    element1.className = "top-bar";
+    element1.style.float = "right";
+    element1.style.width = "34px";
+    element1.style.height = "17px";
+    element1.style.background = "#FFFFFF";
+    if (localStorage.rSC) {
+      let arr = JSON.parse(localStorage.rSC);
+      element1.style.background = `#${arr[0].toString(16).padStart(2, "0")}${arr[1].toString(16).padStart(2, "0")}${arr[2].toString(16).padStart(2, "0")}`;
     }
+    let element2 = document.createElement("span");
+    element2.className = "top-bar";
+    element2.style.float = "right";
+    element2.textContent = "Right Color:";
+    let element3 = document.createElement("span");
+    element3.className = "top-bar";
+    element3.style.float = "right";
+    element3.textContent = "Your ID: null";
+    OWOP.elements.topBar.appendChild(element1);
+    OWOP.elements.topBar.appendChild(element2);
+    OWOP.elements.topBar.appendChild(element3);
+    document.getElementById("playercount-display").style.marginRight = "45px";
+    setInterval(() => {
+      let arr = OWOP.player.rightSelectedColor;
+      element1.style.background = rgb(...arr);
+      element3.textContent = `Your ID:${OWOP.player.id}`;
+    }, 10);
 
-    let paletteJson = {}
-
-    function windowFunc(thisWindow) {
-      var divwindow = document.createElement("div");
-      divwindow.style = "width: 300px; overflow-y: scroll; overflow-x: scroll; max-height: 165px;"
-      divwindow.innerHTML = `<input id="pName" type="text" style="max-width: 100px; border: 0px;" placeholder="Name"></input>
-        <button id="addPalette" >Save Current Palette</button> <table id="paletteTable" style="overflow-x: hidden; overflow-y: scroll;"></table>`;
-      thisWindow.addObj(divwindow);
-    }
-
-    var windowClass = OWOP.windowSys.addWindow(new OWOP.windowSys.class.window(windowName, options, windowFunc))
-      .move(window.innerWidth / 3, window.innerHeight / 3);
-    windows[windowName] = windowClass;
-    NS.windows[windowName].frame.style.visibility = "hidden";
-
-    var pName = document.getElementById("pName");
-
-    pName.oninput = () => {
-      if (pName.value.length > 25) pName.style.backgroundColor = "rgb(255 148 129)";
-      else pName.style.backgroundColor = "rgb(255, 255, 255)";
-    }
-
-    document.getElementById("addPalette").onclick = () => {
-
-      if (pName.value.length > 25) return alert("Your max name length is 25 characters.");
-      if (pName.value.length == 0) return alert("Invalid Name");
-
-      if (!localStorage.getItem("paletteJson")) {
-        paletteJson[pName.value] = OWOP.player.palette;
-        localStorage.setItem("paletteJson", JSON.stringify(paletteJson));
-      } else {
-        paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
-        if (paletteJson[pName.value]) {
-          pName.value = "";
-          return alert("You already have a palette with this name.");
+    // teleport detector
+    OWOP.playerList = {};
+    function tick() {
+      let players = OWOP.require("main").playerList;
+      let playersFixed = {};
+      playersFixed[OWOP.player.id] = {
+        id: OWOP.player.id,
+        x: OWOP.mouse.tileX,
+        y: OWOP.mouse.tileY
+      };
+      for (let player in players) {
+        let n = players[player].childNodes;
+        playersFixed[n[0].innerHTML] = {
+          id: ~~n[0].innerHTML,
+          x: ~~n[1].innerHTML,
+          y: ~~n[2].innerHTML
         }
-        paletteJson[pName.value] = OWOP.player.palette;
-        localStorage.setItem("paletteJson", JSON.stringify(paletteJson));
       }
+      players = playersFixed;
+      // check if the local copy has a disconnected player
+      for (let p1 in OWOP.playerList) {
+        let test = false;
+        for (let p2 in players) {
+          if (p1 === p2) {
+            test = true;
+            break;
+          }
+        }
+        if (!test) {
+          delete OWOP.playerList[p1];
+          //OWOP.chat.local(`${p1} has left.`);
+        }
+      }
+      // check if the main copy has new players
+      for (let p1 in players) {
+        let test = false;
+        for (let p2 in OWOP.playerList) {
+          if (p1 === p2) {
+            test = true;
+            break;
+          }
+        }
+        if (!test) {
+          let p = players[p1];
+          OWOP.playerList[p.id] = {
+            id: p.id,
+            x: p.x,
+            y: p.y
+          }
+          //OWOP.chat.local(`${p1} has joined.`);
+        }
+      }
+      // check for a teleport
+      var banlist = [];
+      for (let player in players) {
+        let p1 = OWOP.playerList[player];
+        let p2 = players[player];
 
-      var divPalette = document.createElement("tr");
-      let pN = pName.value;
-      divPalette.id = `im-busy${pN}`;
-      divPalette.innerHTML = `<td id="palette-${pN}" style="cursor: pointer; padding: 5px; border: 1px solid white; border-radius: 5px; color: white;">${pN}</td> <td id="useT1-${pN}"><button id="useB1-${pN}">Use</button></td> <td id="useT2-${pN}"><button id="useB2-${pN}">Replace</button></td> <td id="useT3-${pN}"><button id="useB3-${pN}">Delete</button></td>`;
-      document.getElementById("paletteTable").appendChild(divPalette);
-      document.getElementById(`useB1-${pN}`).onclick = () => {
-        let paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
-        OWOP.player.palette.splice(0);
-        OWOP.player.palette.push(...paletteJson[pN]);
-        OWOP.player.paletteIndex = OWOP.player.paletteIndex;
+        if (Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) > 2000) {
+          //console.log("someone teleported", p2.id,  p2.x, p2.y);
+          p1.tp = !isNaN(p1.tp) ? p1.tp + 1 : 1;
+          //if (!p1.ban && p1.tp < 10) OWOP.chat.local(`${player} Teleported from ${p1.x} ${p1.y} to ${p2.x} ${p2.y}`);
+        }
+        p1.x = p2.x;
+        p1.y = p2.y;
       }
-      document.getElementById(`useB2-${pN}`).onclick = () => {
-        if (!confirm(`Are you sure you want to REPLACE the palette ${pN}?`)) return;
-        let paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
-        paletteJson[`${pN}`] = OWOP.player.palette;
-        localStorage.setItem('paletteJson', JSON.stringify(paletteJson));
-      }
-      document.getElementById(`useB3-${pN}`).onclick = () => {
-        if (!confirm(`Are you sure you want to DELETE the palette ${pN}?`)) return;
-        let paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
-        document.getElementById(`palette-${pN}`).outerHTML = '';
-        document.getElementById(`im-busy${pN}`).outerHTML = '';
-        delete paletteJson[pN];
-        localStorage.setItem('paletteJson', JSON.stringify(paletteJson));
-      }
-
-      pName.style.backgroundColor = "rgb(255 255 255)";
-
-      pName.value = "";
+      return players;
     }
+    setInterval(tick, 10);
+    setInterval(() => {
+      for (let player in OWOP.playerList) {
+        let p1 = OWOP.playerList[player];
+        if (p1.tp >= 10) p1.ban = true;
+        p1.tp = 0;
+      }
+    }, 10 * 1000);
 
-    if (localStorage.getItem("paletteJson")) {
 
-      var gettedJson = JSON.parse(localStorage.getItem("paletteJson"));
-      var obj = Object.keys(gettedJson);
-      for (var i = 0; i < obj.length; i++) {
-        let pN = obj[i];
+    // it gets in the way of reading chat, im not trying to be mean to arc.
+    { let e = document.querySelector("div[id='arc-widget-container']"); e ? e.parentElement.removeChild(e) : void 0; }
+    if (NS.et) {
+      clearInterval(OWOP.misc.tickInterval);
+      OWOP.misc.tickIntervalNS = setInterval(O, 1e3 / OWOP.options.tickSpeed);
+      function O() {
+        // its already on the normal interval thing, ill delete it when i understand it more
+        var t = ++OWOP.misc.tick;
+        var e = Math.max(Math.min(OWOP.options.movementSpeed, 64), 0);
+        var n = 0;
+        var r = 0;
+        (NS.keysdown[38] || (NS.keysdown[87] && !NS.keysdown[16])) && (r -= e);
+        (NS.keysdown[37] || (NS.keysdown[65] && !NS.keysdown[16])) && (n -= e);
+        (NS.keysdown[40] || (NS.keysdown[83] && !NS.keysdown[16])) && (r += e);
+        (NS.keysdown[39] || (NS.keysdown[68] && !NS.keysdown[16])) && (n += e);
+        if (0 !== n || 0 !== r) {
+          OWOP.require("canvas_renderer").moveCameraBy(n, r);
+          A(null, "mousemove", OWOP.mouse.x, OWOP.mouse.y);
+        }
+        OWOP.eventSys.emit(OWOP.events.tick, t);
+        if (null !== OWOP.player.tool && null !== OWOP.misc.world) OWOP.player.tool.call("tick");
+      }
+      function A(t, e, n, r) {
+        OWOP.mouse.x = n;
+        OWOP.mouse.y = r;
+        let o = 0;
+        if (null !== OWOP.misc.world) OWOP.mouse.validTile = OWOP.misc.world.validMousePos(OWOP.mouse.tileX, OWOP.mouse.tileY);
+        if (null !== OWOP.player.tool) o = OWOP.player.tool.call(e, [OWOP.mouse, t]);
+        if (F(OWOP.mouse.tileX, OWOP.mouse.tileY)) f.updateClientFx();
+        return o;
+      }
+      function F(t, e) {
+        return (OWOP.misc.lastXYDisplay[0] !== t || OWOP.misc.lastXYDisplay[1] !== e) && (OWOP.misc.lastXYDisplay = [t, e],
+          OWOP.options.hexCoords && (t = (t < 0 ? "-" : "") + "0x" + Math.abs(t).toString(16),
+            e = (e < 0 ? "-" : "") + "0x" + Math.abs(e).toString(16)),
+          OWOP.elements.xyDisplay.innerHTML = "X: " + t + ", Y: " + e,
+          !0)
+      }
+    }
+  }
+
+  // window setup
+  {
+    // palette saver
+    (function () {
+      let windowName = "Palette Saver";
+      let options = {
+        closeable: false
+      }
+
+      let paletteJson = {}
+
+      function windowFunc(thisWindow) {
+        var divwindow = document.createElement("div");
+        divwindow.style = "width: 300px; overflow-y: scroll; overflow-x: scroll; max-height: 165px;"
+        divwindow.innerHTML = `<input id="pName" type="text" style="max-width: 100px; border: 0px;" placeholder="Name"></input>
+        <button id="addPalette" >Save Current Palette</button> <table id="paletteTable" style="overflow-x: hidden; overflow-y: scroll;"></table>`;
+        thisWindow.addObj(divwindow);
+      }
+
+      var windowClass = OWOP.windowSys.addWindow(new OWOP.windowSys.class.window(windowName, options, windowFunc))
+        .move(window.innerWidth / 3, window.innerHeight / 3);
+      windows[windowName] = windowClass;
+      NS.windows[windowName].frame.style.visibility = "hidden";
+
+      var pName = document.getElementById("pName");
+
+      pName.oninput = () => {
+        if (pName.value.length > 25) pName.style.backgroundColor = "rgb(255 148 129)";
+        else pName.style.backgroundColor = "rgb(255, 255, 255)";
+      }
+
+      document.getElementById("addPalette").onclick = () => {
+
+        if (pName.value.length > 25) return alert("Your max name length is 25 characters.");
+        if (pName.value.length == 0) return alert("Invalid Name");
+
+        if (!localStorage.getItem("paletteJson")) {
+          paletteJson[pName.value] = OWOP.player.palette;
+          localStorage.setItem("paletteJson", JSON.stringify(paletteJson));
+        } else {
+          paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
+          if (paletteJson[pName.value]) {
+            pName.value = "";
+            return alert("You already have a palette with this name.");
+          }
+          paletteJson[pName.value] = OWOP.player.palette;
+          localStorage.setItem("paletteJson", JSON.stringify(paletteJson));
+        }
+
         var divPalette = document.createElement("tr");
+        let pN = pName.value;
         divPalette.id = `im-busy${pN}`;
         divPalette.innerHTML = `<td id="palette-${pN}" style="cursor: pointer; padding: 5px; border: 1px solid white; border-radius: 5px; color: white;">${pN}</td> <td id="useT1-${pN}"><button id="useB1-${pN}">Use</button></td> <td id="useT2-${pN}"><button id="useB2-${pN}">Replace</button></td> <td id="useT3-${pN}"><button id="useB3-${pN}">Delete</button></td>`;
         document.getElementById("paletteTable").appendChild(divPalette);
         document.getElementById(`useB1-${pN}`).onclick = () => {
           let paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
           OWOP.player.palette.splice(0);
-          OWOP.player.palette.push(...paletteJson[`${pN}`]);
+          OWOP.player.palette.push(...paletteJson[pN]);
           OWOP.player.paletteIndex = OWOP.player.paletteIndex;
         }
         document.getElementById(`useB2-${pN}`).onclick = () => {
@@ -2496,305 +2621,335 @@ function install() {
           delete paletteJson[pN];
           localStorage.setItem('paletteJson', JSON.stringify(paletteJson));
         }
+
+        pName.style.backgroundColor = "rgb(255 255 255)";
+
+        pName.value = "";
       }
-    }
-  })();
 
-  // text input
-  (function () {
-    let windowName = "Text Input";
-    let options = {
-      closeable: false
-    }
+      if (localStorage.getItem("paletteJson")) {
 
-    function windowFunc(thisWindow) {
-      let textArea = document.createElement('textarea');
-      textArea.id = 'text-tool-input';
-      textArea.width = '500px';
-      textArea.hight = '500px';
-      textArea.value = "";
-      // let newTextArea = document.createElement('div');
-      // newTextArea.id = 'text-tool-input';
-      // newTextArea.width = '500px';
-      // newTextArea.height = '500px';
-      // newTextArea.innerHTML = "hi";
-      // newTextArea.contentEditable = "true";
-
-      textArea.onkeydown = () => {
-      }
-      thisWindow.addObj(textArea);
-    }
-
-    var windowClass = OWOP.windowSys.addWindow(new OWOP.windowSys.class.window(windowName, options, windowFunc)
-      .move(window.innerWidth / 3, window.innerHeight / 3));
-    windows[windowName] = windowClass;
-    NS.windows[windowName].frame.style.visibility = "hidden";
-  })();
-
-  // assets
-  (function () {
-    let windowName = "Assets";
-    let options = {
-      closeable: false
-    }
-
-    var mkHTML = OWOP.util.mkHTML;
-    let G = r => document.getElementById(r);
-
-    function windowFunc(thisWindow) {
-      thisWindow.frame.style.width = "500px";
-      let innerFrame = document.createElement("div");
-      let realAssetsCont = mkHTML("div", {
-        id: "real-assets-cont"
-      });
-      let p = mkHTML("p");
-      p.style["margin-block"] = "auto";
-      p.style["display"] = "flex";
-      p.style["justify-content"] = "space-evenly";
-
-      let button1 = mkHTML("button", {
-        id: "NSoptions",
-        innerHTML: "Add"
-      });
-
-      let button2 = mkHTML("button", {
-        id: "NSoptions",
-        innerHTML: "Paste"
-      });
-
-      let button3 = mkHTML("button", {
-        id: "NSoptions",
-        innerHTML: "Delete"
-      });
-
-      let button4 = mkHTML("button", {
-        id: "NSoptions",
-        innerHTML: "Reload"
-      });
-
-      /*
-      };
-      */
-
-      button1.onclick = async () => {
-        OWOP.sounds.play(OWOP.sounds.click);
-        let pE = localStorage.MB_Assets;
-        if (!pE) pE = [];
-        else pE = JSON.parse(pE);
-        var _imgTotal = 0;
-        {
-          var _lsTotal = 0,
-            _xLen, _x;
-          for (_x in localStorage) {
-            if (!localStorage.hasOwnProperty(_x)) {
-              continue;
-            }
-            _xLen = ((localStorage[_x].length + _x.length) * 2);
-            _lsTotal += _xLen;
-          };
-          //console.log("Total = " + (_lsTotal / 1024).toFixed(2) + " KB");
-          if ((_lsTotal / 1024) > 3000) return OWOP.chat.local(`Storage limit reached (3KB), remove images to add more.`);
-          _imgTotal = _lsTotal;
-        }
-        {
-          var _imageData = await X('image/*');
-          var _lsTotal = 0, _x;
-          _x = JSON.stringify(_imageData);
-          _lsTotal = _x.length * 2;
-          //console.log("Total = " + (_lsTotal / 1024).toFixed(2) + " KB");
-          if ((_lsTotal / 1024) > 500) {
-            if (((_lsTotal + _imgTotal) / 1024) > 3000) return OWOP.chat.local(`Image being added is more than Storage limit (3KB)`);
-            if (!confirm(`Are you sure you want to add a image with ${(_lsTotal / 1024).toFixed(2)} KB`)) return;
+        var gettedJson = JSON.parse(localStorage.getItem("paletteJson"));
+        var obj = Object.keys(gettedJson);
+        for (var i = 0; i < obj.length; i++) {
+          let pN = obj[i];
+          var divPalette = document.createElement("tr");
+          divPalette.id = `im-busy${pN}`;
+          divPalette.innerHTML = `<td id="palette-${pN}" style="cursor: pointer; padding: 5px; border: 1px solid white; border-radius: 5px; color: white;">${pN}</td> <td id="useT1-${pN}"><button id="useB1-${pN}">Use</button></td> <td id="useT2-${pN}"><button id="useB2-${pN}">Replace</button></td> <td id="useT3-${pN}"><button id="useB3-${pN}">Delete</button></td>`;
+          document.getElementById("paletteTable").appendChild(divPalette);
+          document.getElementById(`useB1-${pN}`).onclick = () => {
+            let paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
+            OWOP.player.palette.splice(0);
+            OWOP.player.palette.push(...paletteJson[`${pN}`]);
+            OWOP.player.paletteIndex = OWOP.player.paletteIndex;
+          }
+          document.getElementById(`useB2-${pN}`).onclick = () => {
+            if (!confirm(`Are you sure you want to REPLACE the palette ${pN}?`)) return;
+            let paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
+            paletteJson[`${pN}`] = OWOP.player.palette;
+            localStorage.setItem('paletteJson', JSON.stringify(paletteJson));
+          }
+          document.getElementById(`useB3-${pN}`).onclick = () => {
+            if (!confirm(`Are you sure you want to DELETE the palette ${pN}?`)) return;
+            let paletteJson = JSON.parse(localStorage.getItem("paletteJson"));
+            document.getElementById(`palette-${pN}`).outerHTML = '';
+            document.getElementById(`im-busy${pN}`).outerHTML = '';
+            delete paletteJson[pN];
+            localStorage.setItem('paletteJson', JSON.stringify(paletteJson));
           }
         }
-        pE.push(_imageData);
-        localStorage.MB_Assets = JSON.stringify(pE);
-        J();
-      };
+      }
+    })();
 
-      button2.onclick = () => {
-        OWOP.sounds.play(OWOP.sounds.click);
-        var img = new Image();
-        img.onload = () => {
-          OWOP.tool.allTools.paste.extra.k = img;
-          OWOP.player.tool = "move";
-          OWOP.player.tool = "paste";
+    // text input
+    (function () {
+      let windowName = "Text Input";
+      let options = {
+        closeable: false
+      }
+
+      function windowFunc(thisWindow) {
+        let textArea = document.createElement('textarea');
+        textArea.id = 'text-tool-input';
+        textArea.width = '500px';
+        textArea.hight = '500px';
+        textArea.value = "";
+        // let newTextArea = document.createElement('div');
+        // newTextArea.id = 'text-tool-input';
+        // newTextArea.width = '500px';
+        // newTextArea.height = '500px';
+        // newTextArea.innerHTML = "hi";
+        // newTextArea.contentEditable = "true";
+
+        textArea.onkeydown = () => {
         }
-        img.src = NS.selectedAsset;
-      };
+        thisWindow.addObj(textArea);
+      }
 
-      button3.onclick = () => {
-        OWOP.sounds.play(OWOP.sounds.click);
-        if (!NS.selectedAssetIndex) return;
-        if (confirm("Do you want to delete the selected asset?")) NS.assets.splice(NS.selectedAssetIndex, 1);
-        else return;
-        localStorage.MB_Assets = JSON.stringify(NS.assets);
-        J();
-      };
+      var windowClass = OWOP.windowSys.addWindow(new OWOP.windowSys.class.window(windowName, options, windowFunc)
+        .move(window.innerWidth / 3, window.innerHeight / 3));
+      windows[windowName] = windowClass;
+      NS.windows[windowName].frame.style.visibility = "hidden";
+    })();
 
-      button4.onclick = () => {
-        OWOP.sounds.play(OWOP.sounds.click);
-        J();
-      };
+    // assets
+    (function () {
+      let windowName = "Assets";
+      let options = {
+        closeable: false
+      }
 
-      let J = () => {
-        NS.assets = localStorage.MB_Assets;
-        if (!NS.assets) NS.assets = [];
-        else NS.assets = JSON.parse(NS.assets);
-        let y = G("real-assets-cont");
-        y.innerHTML = '';
-        for (let p0 in NS.assets) {
-          let p1 = new Image();
+      var mkHTML = OWOP.util.mkHTML;
+      let G = r => document.getElementById(r);
 
-          p1.onload = () => {
-            p1.style.width = '48px';
-            p1.style.height = '48px';
-            p1.style.border = 'solid 1px';
+      function windowFunc(thisWindow) {
+        thisWindow.frame.style.width = "500px";
+        let innerFrame = document.createElement("div");
+        let realAssetsCont = mkHTML("div", {
+          id: "real-assets-cont"
+        });
+        let p = mkHTML("p");
+        p.style["margin-block"] = "auto";
+        p.style["display"] = "flex";
+        p.style["justify-content"] = "space-evenly";
 
-            p1.onclick = () => {
-              for (let p4 in G('real-assets-cont').children) {
-                if (typeof G('real-assets-cont').children[p4] !== 'object') break;
-                G('real-assets-cont').children[p4].style.border = 'solid 1px';
+        let button1 = mkHTML("button", {
+          id: "NSoptions",
+          innerHTML: "Add"
+        });
+
+        let button2 = mkHTML("button", {
+          id: "NSoptions",
+          innerHTML: "Paste"
+        });
+
+        let button3 = mkHTML("button", {
+          id: "NSoptions",
+          innerHTML: "Delete"
+        });
+
+        let button4 = mkHTML("button", {
+          id: "NSoptions",
+          innerHTML: "Reload"
+        });
+
+        /*
+        };
+        */
+
+        button1.onclick = async () => {
+          OWOP.sounds.play(OWOP.sounds.click);
+          let pE = localStorage.MB_Assets;
+          if (!pE) pE = [];
+          else pE = JSON.parse(pE);
+          var _imgTotal = 0;
+          {
+            var _lsTotal = 0,
+              _xLen, _x;
+            for (_x in localStorage) {
+              if (!localStorage.hasOwnProperty(_x)) {
+                continue;
               }
-              if (NS.selectedImg) {
-                NS.selectedImg.style.width = '48px';
-                NS.selectedImg.style.height = '48px';
-              }
-              NS.selectedAsset = NS.assets[p0];
-              NS.selectedAssetIndex = p0;
-              NS.selectedImg = p1;
-              p1.style.width = '40px';
-              p1.style.height = '40px';
-              p1.style.border = 'solid 5px black';
+              _xLen = ((localStorage[_x].length + _x.length) * 2);
+              _lsTotal += _xLen;
             };
-
-            p1.oncontextmenu = p3 => {
-              p3.preventDefault();
-              NS.assets.splice(p0, 1);
-              localStorage.MB_Assets = JSON.stringify(NS.assets);
-              J();
-            };
-
-            y.append(p1);
-          };
-
-          p1.src = NS.assets[p0];
-        }
-      };
-
-      let X = (r = '*') => new Promise(Q => {
-        let c = document.createElement('input');
-        c.type = 'file';
-        c.accept = r;
-
-        c.onchange = () => {
-          let N = new FileReader();
-
-          N.onloadend = () => {
-            Q(N.result);
-          };
-
-          N.readAsDataURL(c.files[0]);
+            //console.log("Total = " + (_lsTotal / 1024).toFixed(2) + " KB");
+            if ((_lsTotal / 1024) > 3000) return OWOP.chat.local(`Storage limit reached (3KB), remove images to add more.`);
+            _imgTotal = _lsTotal;
+          }
+          {
+            var _imageData = await X('image/*');
+            var _lsTotal = 0, _x;
+            _x = JSON.stringify(_imageData);
+            _lsTotal = _x.length * 2;
+            //console.log("Total = " + (_lsTotal / 1024).toFixed(2) + " KB");
+            if ((_lsTotal / 1024) > 500) {
+              if (((_lsTotal + _imgTotal) / 1024) > 3000) return OWOP.chat.local(`Image being added is more than Storage limit (3KB)`);
+              if (!confirm(`Are you sure you want to add a image with ${(_lsTotal / 1024).toFixed(2)} KB`)) return;
+            }
+          }
+          pE.push(_imageData);
+          localStorage.MB_Assets = JSON.stringify(pE);
+          J();
         };
 
-        c.onclick = () => void 0;
+        button2.onclick = () => {
+          OWOP.sounds.play(OWOP.sounds.click);
+          var img = new Image();
+          img.onload = () => {
+            OWOP.tool.allTools.paste.extra.k = img;
+            OWOP.player.tool = "move";
+            OWOP.player.tool = "paste";
+          }
+          img.src = NS.selectedAsset;
+        };
 
-        c.click();
-      });
+        button3.onclick = () => {
+          OWOP.sounds.play(OWOP.sounds.click);
+          if (!NS.selectedAssetIndex) return;
+          if (confirm("Do you want to delete the selected asset?")) NS.assets.splice(NS.selectedAssetIndex, 1);
+          else return;
+          localStorage.MB_Assets = JSON.stringify(NS.assets);
+          J();
+        };
 
-      button2.addEventListener("click", function () {
-        OWOP.sounds.play(OWOP.sounds.click)
-      });
-      p.appendChild(button1);
-      p.appendChild(button2);
-      p.appendChild(button3);
-      p.appendChild(button4);
-      innerFrame.appendChild(p);
-      innerFrame.appendChild(realAssetsCont);
-      thisWindow.addObj(innerFrame);
-    }
+        button4.onclick = () => {
+          OWOP.sounds.play(OWOP.sounds.click);
+          J();
+        };
 
-    var windowClass = OWOP.windowSys.addWindow(new OWOP.windowSys.class.window(windowName, options, windowFunc)
-      .move(window.innerWidth / 3, window.innerHeight / 3));
-    windows[windowName] = windowClass;
-    windowClass.frame.style.visibility = "hidden";
-  })();
+        let J = () => {
+          NS.assets = localStorage.MB_Assets;
+          if (!NS.assets) NS.assets = [];
+          else NS.assets = JSON.parse(NS.assets);
+          let y = G("real-assets-cont");
+          y.innerHTML = '';
+          for (let p0 in NS.assets) {
+            let p1 = new Image();
 
-  function makeOptionsWindow() {
-    if (OWOP.windowSys.windows['Options']) OWOP.windowSys.delWindow(OWOP.windowSys.windows['Options'])
-    let windowName = "Options";
-    let options = {
-      closeable: false
-    }
+            p1.onload = () => {
+              p1.style.width = '48px';
+              p1.style.height = '48px';
+              p1.style.border = 'solid 1px';
 
-    var mkHTML = OWOP.util.mkHTML;
-    function optionmaker(name, inputType, checked, onPressed) {
-      let p = mkHTML("p");
-      p.style["margin-block"] = "auto";
-      p.style["display"] = "flex";
-      p.style["justify-content"] = "space-between";
-      let span = mkHTML("span", {
-        innerHTML: name + " "
-      });
+              p1.onclick = () => {
+                for (let p4 in G('real-assets-cont').children) {
+                  if (typeof G('real-assets-cont').children[p4] !== 'object') break;
+                  G('real-assets-cont').children[p4].style.border = 'solid 1px';
+                }
+                if (NS.selectedImg) {
+                  NS.selectedImg.style.width = '48px';
+                  NS.selectedImg.style.height = '48px';
+                }
+                NS.selectedAsset = NS.assets[p0];
+                NS.selectedAssetIndex = p0;
+                NS.selectedImg = p1;
+                p1.style.width = '40px';
+                p1.style.height = '40px';
+                p1.style.border = 'solid 5px black';
+              };
 
-      let onSomething = inputType === "checkbox" ? "onchange" : "onclick";
-      let box = mkHTML("input", {
-        type: inputType,
-        id: "NSoptions",
-        [onSomething]: () => onPressed(box)
-      });
-      inputType === "checkbox" ? (box.checked = checked ? true : false) : void 0;
-      span.style.color = 'white';
-      span.style.fontFamily = 'Arial';
-      inputType === "button" ? (box.style.width = "16px", box.style.height = "16px") : void 0;
+              p1.oncontextmenu = p3 => {
+                p3.preventDefault();
+                NS.assets.splice(p0, 1);
+                localStorage.MB_Assets = JSON.stringify(NS.assets);
+                J();
+              };
 
-      p.appendChild(span);
-      p.appendChild(box);
-      return p;
-    }
+              y.append(p1);
+            };
 
-    function windowFunc(thisWindow) {
-      let innerFrame = document.createElement("div");
-      for (let w in OWOP.windowSys.windows) {
-        w = OWOP.windowSys.windows[w];
-        if (w.title === "Options") continue;
-        if (w.title !== "Tools") {
-          w.move(window.innerWidth / 3, window.innerHeight / 3);
-          w.frame.style.visibility = "hidden";
-          let b = w.frame.querySelectorAll(".windowCloseButton");
-          if (b.length) w.frame.removeChild(b[0]);
-        }
-        let v = w.frame.style;
-        innerFrame.appendChild(optionmaker(w.title, "checkbox", v.visibility === "visible" || v.visibility === "" ? true : false, button => v.visibility = button.checked ? "visible" : "hidden"));
+            p1.src = NS.assets[p0];
+          }
+        };
+
+        let X = (r = '*') => new Promise(Q => {
+          let c = document.createElement('input');
+          c.type = 'file';
+          c.accept = r;
+
+          c.onchange = () => {
+            let N = new FileReader();
+
+            N.onloadend = () => {
+              Q(N.result);
+            };
+
+            N.readAsDataURL(c.files[0]);
+          };
+
+          c.onclick = () => void 0;
+
+          c.click();
+        });
+
+        button2.addEventListener("click", function () {
+          OWOP.sounds.play(OWOP.sounds.click)
+        });
+        p.appendChild(button1);
+        p.appendChild(button2);
+        p.appendChild(button3);
+        p.appendChild(button4);
+        innerFrame.appendChild(p);
+        innerFrame.appendChild(realAssetsCont);
+        thisWindow.addObj(innerFrame);
       }
-      innerFrame.appendChild(optionmaker("Disable PM", "checkbox", NS.PM.disabled, () => NS.PM.disabled = !NS.PM.disabled));
-      innerFrame.appendChild(optionmaker("Clear PM", "button", void 0, () => NS.PM.clearQueue()));
-      innerFrame.appendChild(optionmaker("Chunkize", "checkbox", NS.chunkize, () => NS.chunkize = !NS.chunkize));
-      innerFrame.appendChild(optionmaker("Mute", "checkbox", !OWOP.options.enableSounds, () => { OWOP.options.enableSounds = !OWOP.options.enableSounds; localStorage.setItem("options", JSON.stringify({ enableSounds: OWOP.options.enableSounds })) }));
 
-      thisWindow.addObj(innerFrame);
+      var windowClass = OWOP.windowSys.addWindow(new OWOP.windowSys.class.window(windowName, options, windowFunc)
+        .move(window.innerWidth / 3, window.innerHeight / 3));
+      windows[windowName] = windowClass;
+      windowClass.frame.style.visibility = "hidden";
+    })();
+
+    function makeOptionsWindow() {
+      if (OWOP.windowSys.windows['Options']) OWOP.windowSys.delWindow(OWOP.windowSys.windows['Options']);
+      let windowName = "Options";
+      let options = {
+        closeable: false
+      }
+
+      var mkHTML = OWOP.util.mkHTML;
+      function optionmaker(name, inputType, checked, onPressed) {
+        let p = mkHTML("p");
+        p.style["margin-block"] = "auto";
+        p.style["display"] = "flex";
+        p.style["justify-content"] = "space-between";
+        let span = mkHTML("span", {
+          innerHTML: name + " "
+        });
+
+        let onSomething = inputType === "checkbox" ? "onchange" : "onclick";
+        let box = mkHTML("input", {
+          type: inputType,
+          id: "NSoptions",
+          [onSomething]: () => onPressed(box)
+        });
+        inputType === "checkbox" ? (box.checked = checked ? true : false) : void 0;
+        span.style.color = 'white';
+        span.style.fontFamily = 'Arial';
+        inputType === "button" ? (box.style.width = "16px", box.style.height = "16px") : void 0;
+
+        p.appendChild(span);
+        p.appendChild(box);
+        return p;
+      }
+
+      function windowFunc(thisWindow) {
+        let innerFrame = document.createElement("div");
+        for (let w in OWOP.windowSys.windows) {
+          w = OWOP.windowSys.windows[w];
+          if (w.title === "Options" || w.title === "Resulting image") continue;
+          if (w.title !== "Tools") {
+            w.move(window.innerWidth / 3, window.innerHeight / 3);
+            w.frame.style.visibility = "hidden";
+            let b = w.frame.querySelectorAll(".windowCloseButton");
+            if (b.length) w.frame.removeChild(b[0]);
+          }
+          let v = w.frame.style;
+          innerFrame.appendChild(optionmaker(w.title, "checkbox", v.visibility === "visible" || v.visibility === "" ? true : false, button => v.visibility = button.checked ? "visible" : "hidden"));
+        }
+        innerFrame.appendChild(optionmaker("Disable PM", "checkbox", NS.PM.disabled, () => NS.PM.disabled = !NS.PM.disabled));
+        innerFrame.appendChild(optionmaker("Clear PM", "button", void 0, () => NS.PM.clearQueue()));
+        innerFrame.appendChild(optionmaker("Chunkize", "checkbox", NS.chunkize, () => NS.chunkize = !NS.chunkize));
+        innerFrame.appendChild(optionmaker("Mute", "checkbox", !OWOP.options.enableSounds, () => { OWOP.options.enableSounds = !OWOP.options.enableSounds; localStorage.setItem("options", JSON.stringify({ enableSounds: OWOP.options.enableSounds })) }));
+
+        thisWindow.addObj(innerFrame);
+      }
+
+      var windowClass = OWOP.windowSys.addWindow(new OWOP.windowSys.class.window(windowName, options, windowFunc)
+        .move(OWOP.windowSys.windows['Tools'].realw + 15, 32));
+      windows[windowName] = windowClass;
+      windowClass.frame.style.visibility = "visible";
     }
-
-    var windowClass = OWOP.windowSys.addWindow(new OWOP.windowSys.class.window(windowName, options, windowFunc)
-      .move(OWOP.windowSys.windows['Tools'].realw + 15, 32));
-    windows[windowName] = windowClass;
-    windowClass.frame.style.visibility = "visible";
-  }
-  makeOptionsWindow();
-  {
-    function x() {
-      if (!NS.OPM || (typeof OPM !== "undefined" && typeof OPM.user !== "undefined" && (!OPM.user.installed.includes("player-list") || OWOP.windowSys.windows['Players']) && (!OPM.user.installed.includes("coords-saver") || OWOP.windowSys.windows['Coordinates Saver']))) makeOptionsWindow();
-      else setTimeout(x, 1000);
+    makeOptionsWindow();
+    {
+      function x() {
+        if (!NS.OPM || (typeof OPM !== "undefined" && typeof OPM.user !== "undefined" && (!OPM.user.installed.includes("player-list") || OWOP.windowSys.windows['Players']) && (!OPM.user.installed.includes("coords-saver") || OWOP.windowSys.windows['Coordinates Saver']))) makeOptionsWindow();
+        else setTimeout(x, 1000);
+      }
+      x();
     }
-    x();
   }
-
-  function toggleWindow(name, hidden) {
-    if (name === "Options") return;
-    if (hidden === undefined) hidden = windows[name].frame.style.visibility === "hidden";
-    if (window && windows[name]) windows[name].frame.style.visibility = hidden ? "hidden" : "visible";
-  }
-
 
   function hue(d, b = 1) {
     let a = 256 / b; // 1   2   4  8  16 32 64 128 256
@@ -3233,155 +3388,6 @@ function install() {
     load();
   }
 
-  if (document.domain && NS.OPM) {
-    let element1 = document.createElement("span");
-    element1.className = "top-bar";
-    element1.style.float = "right";
-    element1.style.width = "34px";
-    element1.style.height = "17px";
-    element1.style.background = "#FFFFFF";
-    if (localStorage.rSC) {
-      let arr = JSON.parse(localStorage.rSC);
-      element1.style.background = `#${arr[0].toString(16).padStart(2, "0")}${arr[1].toString(16).padStart(2, "0")}${arr[2].toString(16).padStart(2, "0")}`;
-    }
-    let element2 = document.createElement("span");
-    element2.className = "top-bar";
-    element2.style.float = "right";
-    element2.textContent = "Right Color:";
-    let element3 = document.createElement("span");
-    element3.className = "top-bar";
-    element3.style.float = "right";
-    element3.textContent = "Your ID: null";
-    OWOP.elements.topBar.appendChild(element1);
-    OWOP.elements.topBar.appendChild(element2);
-    OWOP.elements.topBar.appendChild(element3);
-    document.getElementById("playercount-display").style.marginRight = "45px";
-    setInterval(() => {
-      let arr = OWOP.player.rightSelectedColor;
-      element1.style.background = rgb(...arr);
-      element3.textContent = `Your ID:${OWOP.player.id}`;
-    }, 10);
-
-    // teleport detector
-    OWOP.playerList = {};
-    function tick() {
-      let players = OWOP.require("main").playerList;
-      let playersFixed = {};
-      playersFixed[OWOP.player.id] = {
-        id: OWOP.player.id,
-        x: OWOP.mouse.tileX,
-        y: OWOP.mouse.tileY
-      };
-      for (let player in players) {
-        let n = players[player].childNodes;
-        playersFixed[n[0].innerHTML] = {
-          id: ~~n[0].innerHTML,
-          x: ~~n[1].innerHTML,
-          y: ~~n[2].innerHTML
-        }
-      }
-      players = playersFixed;
-      // check if the local copy has a disconnected player
-      for (let p1 in OWOP.playerList) {
-        let test = false;
-        for (let p2 in players) {
-          if (p1 === p2) {
-            test = true;
-            break;
-          }
-        }
-        if (!test) {
-          delete OWOP.playerList[p1];
-          //OWOP.chat.local(`${p1} has left.`);
-        }
-      }
-      // check if the main copy has new players
-      for (let p1 in players) {
-        let test = false;
-        for (let p2 in OWOP.playerList) {
-          if (p1 === p2) {
-            test = true;
-            break;
-          }
-        }
-        if (!test) {
-          let p = players[p1];
-          OWOP.playerList[p.id] = {
-            id: p.id,
-            x: p.x,
-            y: p.y
-          }
-          //OWOP.chat.local(`${p1} has joined.`);
-        }
-      }
-      // check for a teleport
-      var banlist = [];
-      for (let player in players) {
-        let p1 = OWOP.playerList[player];
-        let p2 = players[player];
-
-        if (Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) > 2000) {
-          //console.log("someone teleported", p2.id,  p2.x, p2.y);
-          p1.tp = !isNaN(p1.tp) ? p1.tp + 1 : 1;
-          //if (!p1.ban && p1.tp < 10) OWOP.chat.local(`${player} Teleported from ${p1.x} ${p1.y} to ${p2.x} ${p2.y}`);
-        }
-        p1.x = p2.x;
-        p1.y = p2.y;
-      }
-      return players;
-    }
-    setInterval(tick, 10);
-    setInterval(() => {
-      for (let player in OWOP.playerList) {
-        let p1 = OWOP.playerList[player];
-        if (p1.tp >= 10) p1.ban = true;
-        p1.tp = 0;
-      }
-    }, 10 * 1000);
-
-
-    // it gets in the way of reading chat, im not trying to be mean to arc.
-    { let e = document.querySelector("div[id='arc-widget-container']"); e ? e.parentElement.removeChild(e) : void 0; }
-    if (NS.et) {
-      clearInterval(OWOP.misc.tickInterval);
-      OWOP.misc.tickIntervalNS = setInterval(O, 1e3 / OWOP.options.tickSpeed);
-      function O() {
-        // its already on the normal interval thing, ill delete it when i understand it more
-        var t = ++OWOP.misc.tick;
-        var e = Math.max(Math.min(OWOP.options.movementSpeed, 64), 0);
-        var n = 0;
-        var r = 0;
-        (NS.keysdown[38] || (NS.keysdown[87] && !NS.keysdown[16])) && (r -= e);
-        (NS.keysdown[37] || (NS.keysdown[65] && !NS.keysdown[16])) && (n -= e);
-        (NS.keysdown[40] || (NS.keysdown[83] && !NS.keysdown[16])) && (r += e);
-        (NS.keysdown[39] || (NS.keysdown[68] && !NS.keysdown[16])) && (n += e);
-        if (0 !== n || 0 !== r) {
-          OWOP.require("canvas_renderer").moveCameraBy(n, r);
-          A(null, "mousemove", OWOP.mouse.x, OWOP.mouse.y);
-        }
-        OWOP.eventSys.emit(OWOP.events.tick, t);
-        if (null !== OWOP.player.tool && null !== OWOP.misc.world) OWOP.player.tool.call("tick");
-      }
-      function A(t, e, n, r) {
-        OWOP.mouse.x = n;
-        OWOP.mouse.y = r;
-        let o = 0;
-        if (null !== OWOP.misc.world) OWOP.mouse.validTile = OWOP.misc.world.validMousePos(OWOP.mouse.tileX, OWOP.mouse.tileY);
-        if (null !== OWOP.player.tool) o = OWOP.player.tool.call(e, [OWOP.mouse, t]);
-        if (F(OWOP.mouse.tileX, OWOP.mouse.tileY)) f.updateClientFx();
-        return o;
-      }
-      function F(t, e) {
-        return (OWOP.misc.lastXYDisplay[0] !== t || OWOP.misc.lastXYDisplay[1] !== e) && (OWOP.misc.lastXYDisplay = [t, e],
-          OWOP.options.hexCoords && (t = (t < 0 ? "-" : "") + "0x" + Math.abs(t).toString(16),
-            e = (e < 0 ? "-" : "") + "0x" + Math.abs(e).toString(16)),
-          OWOP.elements.xyDisplay.innerHTML = "X: " + t + ", Y: " + e,
-          !0)
-      }
-    }
-  }
-
-  NS.toggleWindow = toggleWindow;
   NS.hue = hue;
   NS.rgb = rgb;
   NS.Base64 = Base64;
@@ -3423,11 +3429,13 @@ function init() {
           case "o":
             OWOP.player.tool = "cursor";
             break;
+          case "f":
+            break;
           case "e":
-            OWOP.player.tool = "neko eraser";
+            //OWOP.player.tool = "neko eraser";
             break;
           case "b":
-            OWOP.player.tool = "fill";
+            //OWOP.player.tool = "fill";
             break;
           case "h":
             // make options window open/close
@@ -3478,25 +3486,22 @@ function init() {
       }
     }
     let t = EventTarget._eventlists;
-    let down = [];
+    let down = [/Custom color\\nType three values separated by a comma: r,g,b\\n\(\.\.\.or the hex string: #RRGGBB\)\\nYou can add multiple colors at a time separating them with a space\./];
     let up = [];
     NS.etdown = false;
     NS.etup = false;
     NS.et = false;
     if (NS.OPM) {
-      down.push('function(t) {\n              var e = t.which || t.keyCode;\n              if ("TEXTAREA" !== document.activeElement.tagName && "INPUT" !== document.activeElement.tagName && null !== E.world) {\n                  b[e] = !0;\n                  var n = f.player.tool;\n                  if (null !== n && null !== E.world && n.isEventDefined("keydown") && n.call("keydown", [b, t])) return !1;\n                  switch (e) {\n                      case 80:\n                          f.player.tool = "pipette";\n                          break;\n                      case 79:\n                          f.player.tool = "cursor";\n                          break;\n                      case 77:\n                      case 16:\n                          f.player.tool = "move";\n                          break;\n                      case 90:\n                          if (!t.ctrlKey || !E.world) break;\n                          E.world.undo(t.shiftKey), t.preventDefault();\n                          break;\n                      case 70:\n                          var r = function(t) {\n                                  var e = t.split(","),\n                                      n = null;\n                                  if (3 == e.length) {\n                                      n = e;\n                                      for (var r = 0; r < e.length; r++)\n                                          if (e[r] = +e[r], !(e[r] >= 0 && e[r] < 256)) return null\n                                  } else if ("#" == t[0] && 7 == t.length) {\n                                      var o = parseInt(t.replace("#", "0x"));\n                                      n = [o >> 16 & 255, o >> 8 & 255, 255 & o]\n                                  }\n                                  return n\n                              },\n                              o = prompt("Custom color\\nType three values separated by a comma: r,g,b\\n(...or the hex string: #RRGGBB)\\nYou can add multiple colors at a time separating them with a space.");\n                          if (!o) break;\n                          o = o.split(" ");\n                          for (var i = 0; i < o.length; i++) {\n                              var a = r(o[i]);\n                              a && (f.player.selectedColor = a)\n                          }\n                          break;\n                      case 71:\n                          u.renderer.showGrid(!u.renderer.gridShown);\n                          break;\n                      case 112:\n                          D(!E.guiShown), t.preventDefault();\n                          break;\n                      case 107:\n                      case 187:\n                          ++u.camera.zoom;\n                          break;\n                      case 109:\n                      case 189:\n                          --u.camera.zoom;\n                          break;\n                      default:\n                          return !0\n                  }\n                  return !1\n              }\n          }');
-      down.push('function(t){var e=t.which||t.keyCode;if("TEXTAREA"!==document.activeElement.tagName&&"INPUT"!==document.activeElement.tagName&&null!==E.world){b[e]=!0;var n=f.player.tool;if(null!==n&&null!==E.world&&n.isEventDefined("keydown")&&n.call("keydown",[b,t]))return!1;switch(e){case 80:f.player.tool="pipette";break;case 79:f.player.tool="cursor";break;case 77:case 16:f.player.tool="move";break;case 90:if(!t.ctrlKey||!E.world)break;E.world.undo(t.shiftKey),t.preventDefault();break;case 70:var r=function(t){var e=t.split(","),n=null;if(3==e.length){n=e;for(var r=0;r<e.length;r++)\nif(e[r]=+e[r],!(e[r]>=0&&e[r]<256))return null}else if("#"==t[0]&&7==t.length){var o=parseInt(t.replace("#","0x"));n=[o>>16&255,o>>8&255,255&o]}\nreturn n},o=prompt("Custom color\\nType three values separated by a comma: r,g,b\\n(...or the hex string: #RRGGBB)\\nYou can add multiple colors at a time separating them with a space.");if(!o)break;o=o.split(" ");for(var i=0;i<o.length;i++){var a=r(o[i]);a&&(f.player.selectedColor=a)}\nbreak;case 71:u.renderer.showGrid(!u.renderer.gridShown);break;case 112:D(!E.guiShown),t.preventDefault();break;case 107:case 187:++u.camera.zoom;break;case 109:case 189:--u.camera.zoom;break;default:return!0}\nreturn!1}}');
       up.push('function(t) {\n              var e = t.which || t.keyCode;\n              if (delete b[e], "INPUT" !== document.activeElement.tagName) {\n                  var n = f.player.tool;\n                  if (null !== n && null !== E.world && n.isEventDefined("keyup") && n.call("keyup", [b, t])) return !1;\n                  13 == e ? k.chatInput.focus() : 16 == e && (f.player.tool = "cursor")\n              }\n          }');
       up.push('function(t){var e=t.which||t.keyCode;if(delete b[e],"INPUT"!==document.activeElement.tagName){var n=f.player.tool;if(null!==n&&null!==E.world&&n.isEventDefined("keyup")&&n.call("keyup",[b,t]))return!1;13==e?k.chatInput.focus():16==e&&(f.player.tool="cursor")}}');
     } else {
-      //down.push('function(e){var t=e.which||e.keyCode;if("INPUT"!==document.activeElement.tagName&&null!==x.world){w[t]=!0;var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keydown")&&n.call("keydown",[w,e]))return!1;switch(t){case 80:d.player.tool="pipette";break;case 79:d.player.tool="cursor";break;case 77:case 16:d.player.tool="move";break;case 90:if(!e.ctrlKey||!x.world)break;x.world.undo(e.shiftKey),e.preventDefault();break;case 70:var o=function(e){var t=e.split(","),n=null;if(3==t.length){n=t;for(var o=0;o<t.length;o++)if(t[o]=+t[o],!(t[o]>=0&&t[o]<256))return null}else if("#"==e[0]&&7==e.length){var r=parseInt(e.replace("#","0x"));n=[r>>16&255,r>>8&255,255&r]}return n},r=prompt("Custom color\\nType three values separated by a comma: r,g,b\\n(...or the hex string: #RRGGBB)\\nYou can add multiple colors at a time separating them with a space.");if(!r)break;r=r.split(" ");for(var a=0;a<r.length;a++){var s=o(r[a]);s&&(d.player.selectedColor=s)}break;case 71:c.renderer.showGrid(!c.renderer.gridShown);break;case 72:i.options.showProtectionOutlines=!i.options.showProtectionOutlines,c.renderer.render(c.renderer.rendertype.FX);break;case 112:j(!x.guiShown),e.preventDefault();break;case 113:i.options.showPlayers=!i.options.showPlayers,c.renderer.render(c.renderer.rendertype.FX);break;case 107:case 187:++c.camera.zoom;break;case 109:case 189:--c.camera.zoom;break;default:return!0}return!1}}');
       //up.push('function(e){var t=e.which||e.keyCode;if(delete w[t],"INPUT"!==document.activeElement.tagName){var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keyup")&&n.call("keyup",[w,e]))return!1;13==t?k.chatInput.focus():16==t&&(d.player.tool="cursor")}}');
     }
     for (let i = 0; i < t.length; i++) {
       let temp = t[i];
       if (NS.etdown !== true) for (let d in down) {
         d = down[d];
-        if (String(temp) === d) {
+        if ((d instanceof RegExp && d.test(String(temp))) || String(temp) === d) {
           NS.etdown = true;
           NS.tempdown = temp;
           console.log("found down", i);
