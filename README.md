@@ -17,4 +17,4 @@ Please create a new issue to leave suggestions on tools/features that I can add 
 
 # How to use
 
-Go to https://raw.githubusercontent.com/NekoNoka/Neko-OPM-Scripts/main/index.js and copy everything into a new Tamper Monkey file.
+Go to https://raw.githubusercontent.com/NekoNoka/Neko-OWOP-Scripts/main/index.js and copy everything into a new Tamper Monkey file.
