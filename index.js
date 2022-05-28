@@ -1,14 +1,17 @@
 // ==UserScript==
 // @name         Neko's Scripts
-// @namespace    http://tampermonkey.net/
-// @version      0.10.2
-// @description  Client for OWOP
 // @author       Neko
+// @description  Script for OWOP
+// @version      0.10.2.1
+// @downloadURL  https://raw.githubusercontent.com/NekoNoka/Neko-OWOP-Scripts/main/index.js
+// @updateURL    https://raw.githubusercontent.com/NekoNoka/Neko-OWOP-Scripts/main/index.js
+// @namespace    http://tampermonkey.net/
 // @match        https://ourworldofpixels.com/*
 // @exclude      https://ourworldofpixels.com/api/*
-// @run-at       document-start
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=ourworldofpixels.com
+// @run-at       document-start
 // @grant        none
+// @license      https://unlicense.org/
 // ==/UserScript==
 
 'use strict';
@@ -3418,54 +3421,54 @@ function init() {
         NS.keysdown[e] = !0;
         var n = OWOP.player.tool;
         if (null !== n && null !== OWOP.world && n.isEventDefined("keydown") && n.call("keydown", [NS.keysdown, event])) return !1;
-        switch (event.key) {
-          case "p":
+        switch (e) {
+          case 80:
             OWOP.player.tool = "pipette";
             break;
-          case "m":
-          case "q":
+          case 77:
+          case 81:
             OWOP.player.tool = "move";
             break;
-          case "o":
+          case 79:
             OWOP.player.tool = "cursor";
             break;
-          case "f":
+          case 70:
             break;
-          case "e":
+          case 69:
             //OWOP.player.tool = "neko eraser";
             break;
-          case "b":
+          case 66:
             //OWOP.player.tool = "fill";
             break;
-          case "h":
+          case 72:
             // make options window open/close
             // options window will include options to switch the behavior of the tools, the game, and open/close all windows
             break;
-          case "g":
+          case 71:
             if (NS.OPM) OWOP.renderer.showGrid(!OWOP.renderer.gridShown);
             break;
-          case "z":
+          case 90:
             if (!event.ctrlKey) break;
             NS.PM.undo(event.shiftKey);
             event.preventDefault();
             break;
-          case "y":
+          case 89:
             if (!event.ctrlKey) break;
             NS.PM.redo(event.shiftKey);
             event.preventDefault();
             break;
-          case "F1": // f1
+          case 112: // f1
             event.preventDefault();
             break;
-          case "NumpadAdd":
-          case "=":
+          case 107:
+          case 187:
             ++OWOP.camera.zoom;
             break;
-          case "NumpadSubtract":
-          case "-":
+          case 109:
+          case 189:
             --OWOP.camera.zoom;
             break;
-          case "l":
+          case 76:
             NS.extra.log = !NS.extra.log;
             break;
         }
@@ -3486,16 +3489,18 @@ function init() {
       }
     }
     let t = EventTarget._eventlists;
-    let down = [/Custom color\\nType three values separated by a comma: r,g,b\\n\(\.\.\.or the hex string: #RRGGBB\)\\nYou can add multiple colors at a time separating them with a space\./];
+    let down = [];
     let up = [];
     NS.etdown = false;
     NS.etup = false;
     NS.et = false;
     if (NS.OPM) {
+      down.push(/Custom color\\nType three values separated by a comma: r,g,b\\n\(\.\.\.or the hex string: #RRGGBB\)\\nYou can add multiple colors at a time separating them with a space\./);
+      up.push(/function\(.\)\{var .=.\.which\|\|.\.keyCode;if\(delete .\[.\],"INPUT"!==document\.activeElement\.tagName\){var .=.\.player\.tool;if\(null!==.&&null!==.\.world&&.\.isEventDefined\("keyup"\)&&.\.call\("keyup",\[.,.\]\)\)return!1;13==.\?.\.chatInput\.focus\(\):16==.&&\(.\.player\.tool="cursor"\)}}/);
       up.push('function(t) {\n              var e = t.which || t.keyCode;\n              if (delete b[e], "INPUT" !== document.activeElement.tagName) {\n                  var n = f.player.tool;\n                  if (null !== n && null !== E.world && n.isEventDefined("keyup") && n.call("keyup", [b, t])) return !1;\n                  13 == e ? k.chatInput.focus() : 16 == e && (f.player.tool = "cursor")\n              }\n          }');
       up.push('function(t){var e=t.which||t.keyCode;if(delete b[e],"INPUT"!==document.activeElement.tagName){var n=f.player.tool;if(null!==n&&null!==E.world&&n.isEventDefined("keyup")&&n.call("keyup",[b,t]))return!1;13==e?k.chatInput.focus():16==e&&(f.player.tool="cursor")}}');
     } else {
-      //up.push('function(e){var t=e.which||e.keyCode;if(delete w[t],"INPUT"!==document.activeElement.tagName){var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keyup")&&n.call("keyup",[w,e]))return!1;13==t?k.chatInput.focus():16==t&&(d.player.tool="cursor")}}');
+      // up.push('function(e){var t=e.which||e.keyCode;if(delete w[t],"INPUT"!==document.activeElement.tagName){var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keyup")&&n.call("keyup",[w,e]))return!1;13==t?k.chatInput.focus():16==t&&(d.player.tool="cursor")}}');
     }
     for (let i = 0; i < t.length; i++) {
       let temp = t[i];
