@@ -7,6 +7,8 @@ This is mostly for my own enjoyment to see what I can make and to allow for arti
 
 Please create a new issue to leave suggestions on tools/features that I can add to make the script better.
 
+There is [documentation](https://github.com/NekoNoka/Neko-OWOP-Scripts/blob/main/Documentation.md) WIP.
+
 # Instructions
 
 There is no inherent requirements to running the script but there is two ways to run it.
