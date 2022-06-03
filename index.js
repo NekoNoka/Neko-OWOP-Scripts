@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.11.1
+// @version      0.11.2
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -488,7 +488,7 @@ function install() {
           }
           let size = Number(tool.extra.state.scalar);
           if (tool.extra.state.chunkize) size = 16;
-          let offset = Math.ceil(size / 2);
+          let offset = Math.floor(size / 2);
           if (tool.extra.state.chunkize) {
             tempx = Math.floor(tempx / 16) * 16;
             tempy = Math.floor(tempy / 16) * 16;
