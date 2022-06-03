@@ -304,6 +304,7 @@ function install() {
       }
     };
     NS.renderPlayers = function(fx, ctx, time) {
+      return;
       let t = 1;
       let e = 5;
       let i = fx.extra.player.x;
