@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.11.0
+// @version      0.11.1
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -303,15 +303,64 @@ function install() {
         localStorage.setItem("rSC", JSON.stringify(OWOP.player.rightSelectedColor));
       }
     };
+    NS.renderPlayers = function(fx, ctx, time) {
+      let t = 1;
+      let e = 5;
+      let i = fx.extra.player.x;
+      let a = fx.extra.player.y;
+      let defaultLine = ctx.lineWidth;
+      let s = ((i / (16 * t) + 0.5) * t - OWOP.camera.x) * OWOP.camera.zoom;
+      let u = ((a / (16 * t) + 0.5) * t - OWOP.camera.y) * OWOP.camera.zoom;
+      new NS.Point(OWOP.mouse.worldX, OWOP.mouse.worldY);
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      ctx.strokeStyle = "#000000";
+      ctx.arc(s, u, OWOP.camera.zoom * t * e, 0, Math.PI * 2, false);
+      ctx.stroke();
+      ctx.closePath();
+      ctx.lineWidth = 15;
+      ctx.beginPath();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.arc(s, u, OWOP.camera.zoom * t * e, Math.PI, Math.PI * 3, false);
+      ctx.stroke();
+      ctx.setLineDash([0]);
+      ctx.closePath();
+      ctx.lineWidth = 11;
+      ctx.beginPath();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = fx.extra.player.htmlRgb;
+      ctx.arc(s, u, OWOP.camera.zoom * t * e, 0, Math.PI * 2, false);
+      ctx.stroke();
+      ctx.closePath();
+      ctx.lineWidth = defaultLine;
+      ctx.globalAlpha = .8;
+      // let canvas = document.getElementById('canvas4');
+      // let ctx = canvas.getContext('2d');
+      // ctx.strokeStyle = '#b668ff';
+      // ctx.lineWidth = 4;
+    }
     // var C = OWOP.require('util/color').colorUtils;
 
     if (!localStorage["rSC"]) localStorage.setItem("rSC", JSON.stringify([255, 255, 255]));
     OWOP.player.rightSelectedColor = JSON.parse(localStorage.getItem("rSC"));
-
+    let someRenderer = ((fx, ctx, time) => {
+      if (!fx.extra.isLocalPlayer) {
+        if (fx.visible) return NS.renderPlayers(fx, ctx, time);
+        return OWOP.fx.player.RECT_SELECT_ALIGNED(1)(fx, ctx, time);
+      }
+    });
     OWOP.tool.addToolObject(new OWOP.tool.class('Cursor', OWOP.cursors.cursor, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       // render protected chunks
       tool.setFxRenderer((fx, ctx, time) => {
+        // let color = rgb(OWOP.player.selectedColor);
+        // if (tool.extra.state.rainbow) color = rgb(...hue(~~(time / 100), 8));
         let defaultFx = OWOP.fx.player.RECT_SELECT_ALIGNED(1);
+        //console.log(fx);
+        if (!fx.extra.isLocalPlayer) {
+          if (fx.visible) return NS.renderPlayers(fx, ctx, time);
+          return OWOP.fx.player.RECT_SELECT_ALIGNED(1)(fx, ctx, time);
+        }
         if (tool.extra.state.chunkize) defaultFx = OWOP.fx.player.RECT_SELECT_ALIGNED(16);
         defaultFx(fx, ctx, time);
         return;
@@ -436,29 +485,24 @@ function install() {
             tempx = tool.extra.last1PX;
             tempy = tool.extra.last1PY;
           }
-          let test = false;
-          if (tool.extra.state.rainbow) {
-            let pixel;
-            if ((pixel = PM.getPixel(tempx, tempy), !pixel)) return;
-            c = mouse.buttons === 1 ? hue(tempx - tempy, 8) : hue(tool.extra.c++, 8);
-            if (!Color.compare(pixel, c)) test = true;
-          } else {
-            test = true;
+          let size = Number(tool.extra.state.scalar);
+          if (tool.extra.state.chunkize) size = 16;
+          let offset = Math.ceil(size / 2);
+          if (tool.extra.state.chunkize) {
+            tempx = Math.floor(tempx / 16) * 16;
+            tempy = Math.floor(tempy / 16) * 16;
+            offset = 0;
           }
-          if (test) {
-            let size = Number(tool.extra.state.scalar);
-            if (tool.extra.state.chunkize) size = 16;
-            let offset = Math.floor(size / 2);
-            for (let x1 = 0; x1 < size; x1++) {
-              for (let y1 = 0; y1 < size; y1++) {
-                if (tool.extra.state.chunkize) {
-                  tempx = Math.floor(tempx / 16) * 16;
-                  tempy = Math.floor(tempy / 16) * 16;
-                  offset = 0;
-                }
-                PM.setPixel(tempx + x1 - offset, tempy + y1 - offset, c);
-                //[Math.round(OWOP.mouse.worldX/16)-0.5, Math.round(OWOP.mouse.worldY/16)-0.5]
+          for (let x1 = 0; x1 < size; x1++) {
+            for (let y1 = 0; y1 < size; y1++) {
+              if (tool.extra.state.rainbow) {
+                let pixel;
+                if ((pixel = PM.getPixel(tempx + x1 - offset, tempy + y1 - offset), !pixel)) continue;
+                c = mouse.buttons === 1 ? hue((tempx + x1 - offset) - (tempy + y1 - offset), 8) : hue(tool.extra.c++, 8);
+                if (Color.compare(pixel, c)) continue;
               }
+              PM.setPixel(tempx + x1 - offset, tempy + y1 - offset, c);
+              //[Math.round(OWOP.mouse.worldX/16)-0.5, Math.round(OWOP.mouse.worldY/16)-0.5]
             }
           }
           if (tool.extra.state.perfect) {
@@ -529,7 +573,10 @@ function install() {
         chunkize: false
       };
       tool.setFxRenderer((fx, ctx, time) => {
-        if (!fx.extra.isLocalPlayer) return 1;
+        if (!fx.extra.isLocalPlayer) {
+          if (fx.visible) return NS.renderPlayers(fx, ctx, time);
+          return 1;
+        }
         var x = fx.extra.player.x;
         var y = fx.extra.player.y;
         var fxx = (Math.floor(x / 16) - camera.x) * camera.zoom;
@@ -962,6 +1009,22 @@ function install() {
                 [1, 0, 1, 0, 0, 0, 0, 0, 0, 0]
               ];
               if (pattern[modulo(x, 10)][modulo(y, 10)]) PM.setPixel(x, y, selClr);
+            } else if (tool.extra.state.dither8) {
+              let pattern = [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+                [0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+                [0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
+              ];
+              if (pattern[modulo(x, 10)][modulo(y, 10)]) PM.setPixel(x, y, selClr);
             } else {
               PM.setPixel(x, y, selClr);
             }
@@ -980,10 +1043,14 @@ function install() {
         }
       }
       tool.setFxRenderer((fx, ctx, time) => {
+        if (!fx.extra.isLocalPlayer) {
+          if (fx.visible) return NS.renderPlayers(fx, ctx, time);
+          return OWOP.fx.player.RECT_SELECT_ALIGNED(1)(fx, ctx, time);
+        }
         ctx.globalAlpha = 0.8;
         ctx.strokeStyle = rgb(...(tool.extra.button === 1 ? OWOP.player.selectedColor : OWOP.player.rightSelectedColor));
         var z = OWOP.camera.zoom;
-        if (!tool.extra.fillingColor || !fx.extra.isLocalPlayer) return OWOP.fx.player.RECT_SELECT_ALIGNED(1)(fx, ctx, time);
+        if (!tool.extra.fillingColor) return OWOP.fx.player.RECT_SELECT_ALIGNED(1)(fx, ctx, time);
         ctx.beginPath();
         for (var current in tool.extra.queue) {
           current = tool.extra.queue[current];
@@ -1029,6 +1096,10 @@ function install() {
       tool.extra.c = 0;
       var defaultFx = OWOP.fx.player.RECT_SELECT_ALIGNED(1);
       tool.setFxRenderer((fx, ctx, time) => {
+        if (!fx.extra.isLocalPlayer) {
+          if (fx.visible) return NS.renderPlayers(fx, ctx, time);
+          return OWOP.fx.player.RECT_SELECT_ALIGNED(1)(fx, ctx, time);
+        }
         ctx.globalAlpha = 0.8;
         ctx.strokeStyle = rgb(...(tool.extra.button === 1 ? OWOP.player.selectedColor : OWOP.player.rightSelectedColor));
         if (tool.extra.state.rainbow) ctx.strokeStyle = rgb(...hue(~~(time / 100), 8));
@@ -1081,6 +1152,10 @@ function install() {
       c.height = 0;
       let p1 = c.getContext('2d');
       tool.setFxRenderer((fx, ctx, time) => {
+        if (!fx.extra.isLocalPlayer) {
+          if (fx.visible) return NS.renderPlayers(fx, ctx, time);
+          return OWOP.fx.player.RECT_SELECT_ALIGNED(1)(fx, ctx, time);
+        }
         let p9 = OWOP.camera.zoom;
         let pp = OWOP.mouse.tileX;
         let pD = OWOP.mouse.tileY;
@@ -1104,7 +1179,7 @@ function install() {
         //   return 0;
         // }
 
-        if (fx.extra.isLocalPlayer && c.width && c.height) {
+        if (c.width && c.height) {
           ctx.globalAlpha = 0.5 + Math.sin(time / 500) / 4;
           ctx.strokeStyle = '#000000';
           ctx.scale(p9, p9);
@@ -1182,7 +1257,10 @@ function install() {
     }));
     OWOP.tool.addToolObject(new OWOP.tool.class('Copy', OWOP.cursors.copy, OWOP.fx.player.NONE, OWOP.RANK.USER, tool => {
       tool.setFxRenderer((fx, ctx, time) => {
-        if (!fx.extra.isLocalPlayer) return 1;
+        if (!fx.extra.isLocalPlayer) {
+          if (fx.visible) return NS.renderPlayers(fx, ctx, time);
+          return 1;
+        }
         var x = fx.extra.player.x;
         var y = fx.extra.player.y;
         var fxx = (Math.floor(x / 16) - camera.x) * camera.zoom;
@@ -1390,8 +1468,11 @@ function install() {
       tool.extra.end = undefined;
       tool.extra.textArea = undefined;
       tool.setFxRenderer((fx, ctx, time) => {
+        if (!fx.extra.isLocalPlayer) {
+          if (fx.visible) return NS.renderPlayers(fx, ctx, time);
+          return 1;
+        }
         var camera = OWOP.camera;
-        if (!fx.extra.isLocalPlayer) return 1;
         var x = fx.extra.player.x;
         var y = fx.extra.player.y;
         var fxx = (Math.floor(x / 16) - camera.x) * camera.zoom;
@@ -1520,6 +1601,9 @@ function install() {
         tool.setEvent('keydown', null);
       });
     }));
+    OWOP.tool.allTools.pipette.fxRenderer = someRenderer;
+    OWOP.tool.allTools.move.fxRenderer = someRenderer;
+    OWOP.tool.allTools.zoom.fxRenderer = someRenderer;
     OWOP.tool.updateToolbar();
   })();
 
@@ -2270,40 +2354,38 @@ function install() {
                         <p>Checkered</p>
                         <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
                       </div>
-                      <!--
                       <div id="dither" class="tabp">
-                        <p>Pattern</p>
-                        <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
-                      </div>
-                      -->
-                      <div id="dither2" class="tabp">
                         <p>Pattern 1</p>
                         <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
                       </div>
-                      <div id="dither3" class="tabp">
+                      <div id="dither2" class="tabp">
                         <p>Pattern 2</p>
                         <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
                       </div>
-                      <!--
+                      <div id="dither3" class="tabp">
+                        <p>Pattern 3</p>
+                        <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
+                      </div>
                       <div id="dither4" class="tabp">
                         <p>Pattern 4</p>
                         <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
                       </div>
-                      -->
                       <div id="dither5" class="tabp">
-                        <p>Pattern 3</p>
+                        <p>Pattern 5</p>
                         <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
                       </div>
                       <div id="dither6" class="tabp">
-                        <p>Pattern 4</p>
+                        <p>Pattern 6</p>
                         <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
                       </div>
-                      <!--
                       <div id="dither7" class="tabp">
                         <p>Pattern 7</p>
                         <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
                       </div>
-                      -->
+                      <div id="dither8" class="tabp">
+                        <p>Pattern 8</p>
+                        <button class="optionButton" onclick="NS.optionbutton(this)">off</button>
+                      </div>
                     </div>
                     <div id="export" class="tabcontentort" style="display: none;">
                       <div class="tabp">
@@ -2311,9 +2393,9 @@ function install() {
                         <select style="padding: 3px 0px;background: #aba389;" class="exportselect" oninput="OWOP.tool.allTools.export.extra.state.type=this.value">
                           <option value="export">Export</option>
                           <option value="color">Palette Color Adder</option>
-                          <!--<option value="adder">Queue Adder</option>-->
+                          <option value="adder">Queue Adder</option>
                           <option value="filler">Queue Filler</option>
-                          <!--<option value="clearer">Queue Clearer</option>-->
+                          <option value="clearer">Queue Clearer</option>
                         </select>
                       </div>
                       <div id="chunkize" class="tabp">
@@ -2479,6 +2561,13 @@ function install() {
     return output;
   }
 
+  var rangeMap = (a, b) => s => {
+    const [a1, a2] = a;
+    const [b1, b2] = b;
+    // Scaling up an order, and then down, to bypass a potential,
+    // precision issue with negative numbers.
+    return (((((b2 - b1) * (s - a1)) / (a2 - a1)) * 10) + (10 * b1)) / 10;
+  };
   var clamp = v => Math.round(Math.max(Math.min(v, 255), 0));
   var degToRad = d => d * (Math.PI / 180);
   var radToDeg = r => r / (Math.PI / 180);
@@ -2705,7 +2794,6 @@ function install() {
     var cursors = {
       set: new Image(),
 
-      // start of default cursors
       cursor: { imgpos: [0, 0], hotspot: [0, 0] },
       move: { imgpos: [1, 0], hotspot: [18, 18] },
       pipette: { imgpos: [0, 1], hotspot: [0, 28] },
@@ -2723,72 +2811,7 @@ function install() {
       kick: { imgpos: [2, 1], hotspot: [3, 6] },
       ban: { imgpos: [3, 0], hotspot: [10, 4] },
       write: { imgpos: [1, 3], hotspot: [10, 4] }, // fix hotspot
-      // end of the default cursors
-
-      // start of neko cursors
-      "neko eraser": { imgpos: [0, 2], hotspot: [4, 26] },
-      "neko foreign pixel replacer": { imgpos: [4, 1], hotspot: [4, 26] },
-      "pixel perfect": { imgpos: [0, 3], hotspot: [0, 26] },
-      "palette color adder": { imgpos: [0, 5], hotspot: [0, 0] },
-      "rainbow cursor": { imgpos: [4, 4], hotspot: [0, 26] },
-      "rainbow line": { imgpos: [4, 3], hotspot: [0, 0] },
-      "rainbow fill": { imgpos: [4, 2], hotspot: [3, 29] },
-      "checkered fill": { imgpos: [0, 4], hotspot: [3, 29] },
-      "gradient wand": { imgpos: [4, 5], hotspot: [0, 0] },
-      "queue adder": { imgpos: [1, 5], hotspot: [0, 0] },
-      "queue filler": { imgpos: [2, 5], hotspot: [0, 0] },
-      "queue clearer": { imgpos: [3, 5], hotspot: [0, 0] },
-      // end of the neko cursors
     };
-
-    function reduce(canvas) { /* Removes unused space from the image */
-      var nw = canvas.width;
-      var nh = canvas.height;
-      var ctx = canvas.getContext('2d');
-      var idat = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      var u32dat = new Uint32Array(idat.data.buffer);
-      var xoff = 0;
-      var yoff = 0;
-      for (var y = 0, x, i = 0; y < idat.height; y++) {
-        for (x = idat.width; x--; i += u32dat[y * idat.width + x]);
-        if (i) { break; }
-        yoff++;
-      }
-      for (var x = 0, y, i = 0; x < idat.width; x++) {
-        for (y = nh; y--; i += u32dat[y * idat.width + x]);
-        if (i) { break; }
-        xoff++;
-      }
-      for (var y = idat.height, x, i = 0; y--;) {
-        for (x = idat.width; x--; i += u32dat[y * idat.width + x]);
-        if (i) { break; }
-        nh--;
-      }
-      for (var x = idat.width, y, i = 0; x--;) {
-        for (y = nh; y--; i += u32dat[y * idat.width + x]);
-        if (i) { break; }
-        nw--;
-      }
-      canvas.width = nw;
-      canvas.height = nh;
-      ctx.putImageData(idat, -xoff, -yoff);
-    }
-
-    function shadow(canvas, img) {
-      /* Make a bigger image so the shadow doesn't get cut */
-      canvas.width = 2 + img.width + 6;
-      canvas.height = 2 + img.height + 6;
-      var ctx = canvas.getContext('2d');
-      ctx.shadowColor = '#000000';
-      ctx.globalAlpha = 0.5; /* The shadow is too dark so we draw it transparent */
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-      ctx.drawImage(img, 2, 2);
-      ctx.globalAlpha = 1;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0)'; /* disables the shadow */
-      ctx.drawImage(img, 2, 2);
-    }
 
     /* makes a hole with the shape of the image */
     function popOut(canvas, img) {
@@ -2887,7 +2910,8 @@ function install() {
 
     load();
   }
-
+  
+  NS.rangeMap = rangeMap;
   NS.hue = hue;
   NS.rgb = rgb;
   NS.Base64 = Base64;
