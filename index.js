@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.0
+// @version      0.12.1
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -509,6 +509,7 @@ function install() {
     };
     NS.renderPlayer = function (fx, ctx, time) {
       (function (fx, ctx, time) {
+        if (!NS.PM.renderPlayerRings) return;
         let t = 1;
         let e = 5;
         let i = fx.extra.player.x;
@@ -3504,6 +3505,7 @@ function install() {
       options.appendChild(optionmaker("Disable PM", "button", !NS.PM.enabled, () => NS.PM.enabled = !NS.PM.enabled));
       options.appendChild(optionmaker("Clear PM", "select", void 0, () => NS.PM.clearQueue()));
       options.appendChild(optionmaker("Render PM", "button", NS.PM.renderBorder, () => NS.PM.renderBorder = !NS.PM.renderBorder));
+      options.appendChild(optionmaker("Render Rings", "button", NS.PM.renderPlayerRings, () => NS.PM.renderPlayerRings = !NS.PM.renderPlayerRings));
       options.appendChild(optionmaker("AutoFix", "button", NS.PM.autoMove, () => NS.PM.autoMove = !NS.PM.autoMove));
       options.appendChild(optionmaker("Mute", "button", !OWOP.options.enableSounds, () => { OWOP.options.enableSounds = !OWOP.options.enableSounds; localStorage.setItem("options", JSON.stringify({ enableSounds: OWOP.options.enableSounds })) }));
       options.appendChild(optionmaker("Undo", "select", void 0, () => PM.undo()));
@@ -3869,44 +3871,6 @@ function install() {
     ctx.putImageData(d, 0, 0);
     return c;
   }
-  /*
-  !function () {
-    ((arr, onblob) => {
-      let c1 = document.createElement('canvas');
-      let ctx1 = c1.getContext('2d');
-      ctx1.drawImage(img, 0, 0);
-      let slicedImg = ctx1.getImageData(arr[0] * 36, arr[1] * 36, 36, 36);
-      let c2 = document.createElement('canvas');
-      c2.width = 38;
-      c2.height = 38;
-      let ctx2 = c2.getContext('2d');
-      ctx2.fillStyle = "#000000";
-      ctx2.fillRect(0, 0, c2.width, c2.height);
-      for (let y = 0; y < 36; y++) {
-        for (let x = 0; x < 36; x++) {
-          let pix = slicedImg.data[4 * (y * 36 + x) + 3];
-          if (pix < 255) {
-            slicedImg.data[4 * (y * 36 + x)] = 255;
-            slicedImg.data[4 * (y * 36 + x) + 1] = 255;
-            slicedImg.data[4 * (y * 36 + x) + 2] = 255;
-            slicedImg.data[4 * (y * 36 + x) + 3] = 255;
-          }
-        }
-      }
-      ctx2.putImageData(slicedImg, 1, 1);
-      c2.toBlob(onblob);
-    })(offset, b => {
-      let url = URL.createObjectURL(b);
-      let image = new Image();
-      image.onload = () => {
-        OWOP.tool.allTools.paste.extra.k = image;
-        OWOP.player.tool = "move";
-        OWOP.player.tool = "paste";
-      }
-      image.src = url;
-    });
-  }()
-  */
 
   NS.rangeMap = rangeMap;
   NS.hue = hue;
