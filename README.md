@@ -20,6 +20,6 @@ If you want to get automatic updates or you don't want to bother running the scr
 If you do not want to install anything but still want to use the script.
 * You can go to https://raw.githubusercontent.com/NekoNoka/Neko-OWOP-Scripts/main/index.js and paste the script directly into your browsers console.
 
-# Optional
+# Support Drop
 
-It may be used alongside OPM 2 (https://opm.dimden.dev/) for extra quality of life features but is not required.
+This script no longer works with OPM 2, you may request for features to be added to this script which is in OPM 2.
