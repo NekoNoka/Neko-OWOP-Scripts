@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.1
+// @version      0.12.2
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -165,7 +165,7 @@ function install() {
           let [x, y] = e.split(",");
           for (let i = 0; i < 16; i++) {
             for (let j = 0; j < 16; j++) {
-              if (!this.queue[`${x * 16 + i},${y * 16 + j}`].placed) return NS.M20.centerCameraTo(x * 16 + i, y * 16 + j);
+              if (this.queue[`${x * 16 + i},${y * 16 + j}`]?.placed === false) return NS.M20.centerCameraTo(x * 16 + i, y * 16 + j);
             }
           }
           this.chunkQueueTemp[e] = false;
@@ -3204,7 +3204,6 @@ function install() {
               <style>
                 p {
                   margin-block: auto;
-                  text-align: center;
                   color: white;
                   font-family: Arial;
                 }
@@ -3907,8 +3906,22 @@ function init() {
         // im gonna make a localstorage check to make sure the reload doesnt happen indefinitely, and if the check happens at least 3 times then it will resume code execution without anymore reloads and provide a warning that the script wasnt loaded correctly, for now there wont be anything (this is a pre-release version currently).
         // localStorage.NS;
         // if (temp1)
-        location.reload();
+        let l = JSON.parse(localStorage.NS);
+        if (!l.reloadCheck) l.reloadCheck = 1;
+        if (l.reloadCheck === 3) {
+          delete l.reloadCheck;
+          localStorage.NS = JSON.stringify(l);
+          OWOP.chat.local("Neko's Script was not loaded correctly, please reload the tab.");
+        } else {
+          l.reloadCheck++;
+          localStorage.NS = JSON.stringify(l);
+          location.reload();
+        }
         return;
+      } else {
+        let l = JSON.parse(localStorage.NS);
+        if (l.reloadCheck) delete l.reloadCheck;
+        localStorage.NS = JSON.stringify(l);
       }
       NS.keysdown = [];
       NS.extra = {};
