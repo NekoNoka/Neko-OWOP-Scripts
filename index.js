@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.3
+// @version      0.12.4
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -606,7 +606,7 @@ function install() {
         oldFunction.bind(this)(...arguments);
       }
     });
-    setTimeout(() => {
+    function setTools() {
       OWOP.tool.addToolObject(new OWOP.tool.class('Cursor', OWOP.cursors.cursor, null, 1, tool => {
         // render protected chunks
         tool.setFxRenderer((fx, ctx, time) => {
@@ -2116,7 +2116,14 @@ function install() {
         document.getElementById("toole-container").style.maxWidth = 40 * Math.ceil(r / 8) + "px";
       }
       makeOptionsWindow();
-    }, 1.5e3);
+    }
+    function x() {
+      setTimeout(() => {
+        if (OWOP?.tool) setTools();
+        else setTimeout(x, 1.5e3);
+      }, 1.5e3);
+    }
+    x();
   })();
 
   if (document.domain && !NS.OPM) {
@@ -4133,7 +4140,7 @@ function init() {
         background-color: rgb(0, 0, 0);
         background-color: rgba(0, 0, 0, 0.4);
       }
-  
+
       .modal-content {
         background-color: #aba389;
         margin: auto;
