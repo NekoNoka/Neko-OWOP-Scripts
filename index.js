@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.2
+// @version      0.12.3
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -28,7 +28,7 @@ if (window) window.NS = NS;
     if (NS.modules.length === 43) Object.defineProperty = originalFunction;
     return x;
   }
-  0, 13, 14, 15, 16, 20, 22, 21, 23, 24, 25;
+  0, 13, 14, 15, 16, 20, 21, 22, 23, 24, 25;
   // Thanks again Lapis
 }
 
@@ -133,29 +133,27 @@ function install() {
           this.extra.placeData.push([d, p2]);
         }
       }
-      this.extra.placeData.sort((a, b) => {
-        return a[0] - b[0];
-      });
-      NS.M14.eventSys.addListener(NS.M13.EVENTS.tick, () => NS.PM.enabled ? NS.PM.placePixel() : void 0);
+      this.extra.placeData.sort((a, b) => a[0] - b[0]);
+      NS.M14.eventSys.addListener(NS.M13.EVENTS.tick, function () { this.enabled ? this.placePixel() : void 0 }.bind(this));
       NS.M14.eventSys.addListener(NS.M13.EVENTS.net.world.tilesUpdated, function (message) {
         for (let i = 0; i < message.length; i++) {
           let p = message[i];
           let placedColor = [(p.rgb & (255 << 0)) >> 0, (p.rgb & (255 << 8)) >> 8, (p.rgb & (255 << 16)) >> 16];
-          if (Object.keys(NS.PM.whitelist).includes(`${p.id}`)) NS.PM.setPixel(p.x, p.y, placedColor);
-          let pixel = NS.PM.queue[`${p.x},${p.y}`];
-          if (pixel) (NS.PM.borderCheck = true, pixel.placed = false, NS.PM.updateBorder(p.x, p.y));
+          if (Object.keys(this.whitelist).includes(`${p.id}`)) this.setPixel(p.x, p.y, placedColor);
+          let pixel = this.queue[`${p.x},${p.y}`];
+          if (pixel) (this.borderCheck = true, pixel.placed = false, this.updateBorder(p.x, p.y));
         }
-      });
+      }.bind(this));
       NS.M14.eventSys.addListener(NS.M13.EVENTS.net.world.leave, function () {
         OWOP.sounds.play(OWOP.sounds.launch);
-        NS.PM.disable();
+        this.disable();
         this.border = {};
         console.log(arguments, "leave");
-      });
+      }.bind(this));
       NS.M14.eventSys.addListener(NS.M13.EVENTS.net.world.join, function () {
-        NS.PM.enable();
+        this.enable();
         console.log(arguments, "join");
-      });
+      }.bind(this));
     }
     moveToNext() {
       if (!this.autoMove) return;
@@ -381,12 +379,6 @@ function install() {
   NS.PixelManager = PixelManager;
   const PM = new PixelManager();
   NS.PM = PM;
-  NS.localStorage = localStorage.NS;
-  if (!NS.localStorage) {
-    localStorage.NS = JSON.stringify({});
-    NS.localStorage = localStorage.NS;
-  }
-  NS.localStorage = JSON.parse(NS.localStorage);
 
   OWOP.OPM = false;
   if (OWOP.misc) OWOP.OPM = true;
@@ -601,14 +593,16 @@ function install() {
     {
       let i = NS.localStorage.cursors[OWOP.player.tool.id];
       // i = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAACeElEQVRYw+2XsWsaYRiHH6VRSyGBEwepi5nsIFToWKUKDoVkyl/QIQhZRMdCJqGj0kUoGRw6FqcIGY4qnI6BBBwiFCqBKzcUDxoieMlgB/NdYtN6Z7yzGfyBy3eIj8/3vu/3HayyQGKvPoyX/ZvexwblfWymLIEMrb1UKFuGQk+PMLT2UqC8Vnb0UReAyOblUqBmAumjLlIgDkClpZhQ0edvx/9ty/zhJACdoWFC+cNJ10zNBJICcbR+FYDXz/wU0il2GrKrNeW1siO2rDM0AKhvZam0FPD1XIHy2ml5YUikkE6RPz0DX8/xkWBpSHSZMFRpKaapL9++YwwOHDU1E0jrV80tE+kMDXYa8j1TTkFZFrUwJKIcqrd1BHx8+YJESXYMynIOhaN7f31WSKdMqJP97FRNLTKnbLe9SGo7MgWVKMmmKSlTxhgcLDSnLA3d3SqAz8WjyfmWqxHK1UhtR0wovVk0obR+9UFQnlkPhfrI5iU7DZn6VpZQrsZ5q4veLP7ze4mSzMl+Fq5i6KMuvwaqx3GgUK7Gz0/vqLQUCumUaenPnLdurerNIlzF8IeT9I7fexYG2ghGxlIgDr4e+dMz6ltZAFRVRcqUZ1qammfBXbR+1ZYp222vHKqo6uSTKMnmv9cvrtEvruEqNrER3DXXxZqhtQlH92zVlOVpLwaj2AopU+Zr/s0E5OZ6IsD1Ude8Q4lxIaa9obVtFbplDemjLtL6GlKmPFUXIv0fRx4czBN7F7TePZh5u8eRLtsIRsYA0vraZOGmjaVA3HEzc9fQ3ZpxC8a+oTsnvpswtl+DROu7DTPXli0DxrYhN7rpQRE1tMoqM/Ibi49haAcCegQAAAAASUVORK5CYII=";
-      mouseStyler.innerHTML = `#viewport { cursor: url("${i.icon}") ${i.hotspot[0]} ${i.hotspot[1]}, pointer !important; } } `;
+      if (i) mouseStyler.innerHTML = `#viewport { cursor: url("${i.icon}") ${i.hotspot[0]} ${i.hotspot[1]}, pointer !important; }`;
+      else mouseStyler.innerHTML = `#viewport { }`;
     }
     let oldFunction = Object.getOwnPropertyDescriptor(OWOP.player, "tool").set;
     Object.defineProperty(OWOP.player, 'tool', {
       set: function (x) {
         let i = NS.localStorage.cursors[x];
         // i = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAACeElEQVRYw+2XsWsaYRiHH6VRSyGBEwepi5nsIFToWKUKDoVkyl/QIQhZRMdCJqGj0kUoGRw6FqcIGY4qnI6BBBwiFCqBKzcUDxoieMlgB/NdYtN6Z7yzGfyBy3eIj8/3vu/3HayyQGKvPoyX/ZvexwblfWymLIEMrb1UKFuGQk+PMLT2UqC8Vnb0UReAyOblUqBmAumjLlIgDkClpZhQ0edvx/9ty/zhJACdoWFC+cNJ10zNBJICcbR+FYDXz/wU0il2GrKrNeW1siO2rDM0AKhvZam0FPD1XIHy2ml5YUikkE6RPz0DX8/xkWBpSHSZMFRpKaapL9++YwwOHDU1E0jrV80tE+kMDXYa8j1TTkFZFrUwJKIcqrd1BHx8+YJESXYMynIOhaN7f31WSKdMqJP97FRNLTKnbLe9SGo7MgWVKMmmKSlTxhgcLDSnLA3d3SqAz8WjyfmWqxHK1UhtR0wovVk0obR+9UFQnlkPhfrI5iU7DZn6VpZQrsZ5q4veLP7ze4mSzMl+Fq5i6KMuvwaqx3GgUK7Gz0/vqLQUCumUaenPnLdurerNIlzF8IeT9I7fexYG2ghGxlIgDr4e+dMz6ltZAFRVRcqUZ1qammfBXbR+1ZYp222vHKqo6uSTKMnmv9cvrtEvruEqNrER3DXXxZqhtQlH92zVlOVpLwaj2AopU+Zr/s0E5OZ6IsD1Ude8Q4lxIaa9obVtFbplDemjLtL6GlKmPFUXIv0fRx4czBN7F7TePZh5u8eRLtsIRsYA0vraZOGmjaVA3HEzc9fQ3ZpxC8a+oTsnvpswtl+DROu7DTPXli0DxrYhN7rpQRE1tMoqM/Ibi49haAcCegQAAAAASUVORK5CYII=";
-        if (i) mouseStyler.innerHTML = `#viewport { cursor: url("${i.icon}") ${i.hotspot[0]} ${i.hotspot[1]}, pointer !important; } } `;
+        if (i) mouseStyler.innerHTML = `#viewport { cursor: url("${i.icon}") ${i.hotspot[0]} ${i.hotspot[1]}, pointer !important; }`;
+        else mouseStyler.innerHTML = `#viewport { }`;
         oldFunction.bind(this)(...arguments);
       }
     });
@@ -2137,37 +2131,9 @@ function install() {
             OWOP.chat.local(`Commands: /tp, /whitelist, /msg`);
           } break;
           case "tp": {
-            if (!NS.teleport) NS.teleport = {};
+            let x, y;
             if (command.length === 3) {
-              if (isNaN(Number(command[1])) || isNaN(Number(command[2]))) break;
-              if (Math.abs(Number(command[1])) < 500000 && Math.abs(Number(command[2])) < 500000) {
-                NS.M20.centerCameraTo(Number(command[1]), Number(command[2]));
-                NS.teleport.camera = { x: undefined, y: undefined }
-              } else {
-                if (NS.teleport.camera?.x === undefined) {
-                  NS.teleport.camera = { x: Number(command[1]), y: Number(command[2]) }
-                  !function teleport() {
-                    let dx = NS.teleport.camera.x - NS.M20.camera.x;
-                    let dy = NS.teleport.camera.y - NS.M20.camera.y;
-                    let distanceX = Math.abs(dx) < 10000 ? -window.innerWidth / OWOP.camera.zoom / 2 + dx : Math.sign(dx) * 10000;
-                    let distanceY = Math.abs(dy) < 10000 ? -window.innerHeight / OWOP.camera.zoom / 2 + dy : Math.sign(dy) * 10000;
-                    let teleported = false;
-                    if (Math.abs(dx) > 1000) {
-                      NS.M20.camera.zoom = 32;
-                      NS.M20.moveCameraBy(distanceX, 0);
-                      teleported = true;
-                    } else if (Math.abs(dy) > 1000) {
-                      NS.M20.camera.zoom = 32;
-                      NS.M20.moveCameraBy(0, distanceY);
-                      teleported = true;
-                    }
-                    if (teleported) setTimeout(teleport, 150);
-                    else NS.teleport.camera = { x: undefined, y: undefined };
-                  }();
-                } else {
-                  NS.teleport.camera = { x: Number(command[1]), y: Number(command[2]) }
-                }
-              }
+              [x, y] = [Number(command[1]), Number(command[2])];
             }
             if (command.length === 2) {
               if (isNaN(Number(command[1]))) break;
@@ -2176,35 +2142,23 @@ function install() {
                 OWOP.chat.local(`Player ${command[1]} doesn't exist.`);
                 break;
               }
-              if (Math.abs(p.x) > 2 ** 24 || Math.abs(p.y) > 2 ** 24) break;
-              if (Math.abs(Number(p.tileX)) < 500000 && Math.abs(Number(p.tileY)) < 500000) {
-                NS.M20.centerCameraTo(Number(p.tileX), Number(p.tileY));
-                // NS.M20.centerCameraTo(Number(command[1]), Number(command[2]));
-                NS.teleport.camera = { x: undefined, y: undefined }
-              } else {
-                if (NS.teleport.camera?.x === undefined) {
-                  NS.teleport.camera = { x: Number(p.tileX), y: Number(p.tileY) }
-                  !function teleport() {
-                    let dx = NS.teleport.camera.x - NS.M20.camera.x;
-                    let dy = NS.teleport.camera.y - NS.M20.camera.y;
-                    let distanceX = Math.abs(dx) < 10000 ? window.innerWidth / OWOP.camera.zoom / 2 + dx : Math.sign(dx) * 10000;
-                    let distanceY = Math.abs(dy) < 10000 ? window.innerHeight / OWOP.camera.zoom / 2 + dy : Math.sign(dy) * 10000;
-                    if (Math.abs(dx) > 1000) {
-                      NS.M20.camera.zoom = 32;
-                      NS.M20.moveCameraBy(distanceX, 0);
-                      setTimeout(teleport, 150);
-                    } else if (Math.abs(dy) > 1000) {
-                      NS.M20.camera.zoom = 32;
-                      NS.M20.moveCameraBy(0, distanceY);
-                      setTimeout(teleport, 150);
-                    } else {
-                      NS.teleport.camera = { x: undefined, y: undefined }
-                    }
-                  }();
-                } else {
-                  NS.teleport.camera = { x: Number(p.tileX), y: Number(p.tileY) }
-                }
-              }
+              ({ tileX: x, tileY: y } = p);
+            }
+            if (isNaN(x) || isNaN(y)) {
+              NS.teleport.camera = {};
+              break;
+            }
+            if (Math.abs(x) > 0xFFFFFF || Math.abs(y) > 0xFFFFFF) break;
+            if (Math.abs(x) < 5e5 && Math.abs(y) < 5e5) {
+              NS.teleport.camera = {};
+              NS.M20.centerCameraTo(x, y);
+              break;
+            }
+            NS.teleport.camera = { x: x, y: y };
+            NS.M20.camera.zoom = 32;
+            if (!NS.teleport.teleporting) {
+              OWOP.chat.local("Press Esc to cancel teleport OR send \"/tp\" in chat.");
+              NS.teleport();
             }
           } break;
           case "chat": {
@@ -2287,7 +2241,6 @@ function install() {
         command[0] = "tell";
         arguments[0] = "/" + command.join(" ");
       }
-
       return originalFunction.bind(this)(...arguments);
     }
     console.log("non opm completed");
@@ -2759,6 +2712,34 @@ function install() {
             </span>
           </span>
         </span>
+        <!--
+        <span class="NSspan2">
+          <span class="NSspan3">
+            <span class="NSspan4">
+              <span class="NSspan6">
+                <div class="NSdiv1" style="background-position: -108px 0px;"></div>
+              </span>
+              <div class="NSdiv2">Copy</div>
+            </span>
+            <span class="NSspan5">
+              <button class="optionButton" style="max-height: 25px;" onclick="NS.iconSelect('copy')">Select</button>
+              <button class="optionButton" style="max-height: 25px;" onclick="NS.iconPaste('copy')">Paste</button>
+            </span>
+          </span>
+          <span class="NSspan3">
+            <span class="NSspan4">
+              <span class="NSspan6">
+                <div class="NSdiv1" style="background-position: -36px -108px;"></div>
+              </span>
+              <div class="NSdiv2">Text</div>
+            </span>
+            <span class="NSspan5">
+              <button class="optionButton" style="max-height: 25px;" onclick="NS.iconSelect('write')">Select</button>
+              <button class="optionButton" style="max-height: 25px;" onclick="NS.iconPaste('write')">Paste</button>
+            </span>
+          </span>
+        </span>
+        -->
       </span>
         `;
       thisWindow.container.innerHTML = content;
@@ -3871,6 +3852,77 @@ function install() {
     return c;
   }
 
+  NS.teleport = function () {
+    let { x, y } = NS.teleport.camera;
+    if (isNaN(x) || isNaN(y)) {
+      NS.teleport.camera = {};
+      NS.teleport.teleporting = false;
+      return;
+    }
+    let dx = x - NS.M20.camera.x;
+    let dy = y - NS.M20.camera.y;
+    // let distanceX = Math.abs(dx) < 10000 ? -window.innerWidth / OWOP.camera.zoom / 2 + dx : Math.sign(dx) * 10000;
+    // let distanceY = Math.abs(dy) < 10000 ? -window.innerHeight / OWOP.camera.zoom / 2 + dy : Math.sign(dy) * 10000;
+    NS.M20.camera.zoom = 32;
+
+    let p = 9952;
+    let d = Math.sqrt((x - OWOP.mouse.tileX) ** 2 + (y - OWOP.mouse.tileY) ** 2) * (1 / p);
+    let xdirection = (x - OWOP.mouse.tileX) / d;
+    let ydirection = (y - OWOP.mouse.tileY) / d;
+
+    let p1 = new Point(x, y);
+    let p2 = new Point(OWOP.mouse.tileX, OWOP.mouse.tileY);
+    let distance = Point.distance(p1, p2);
+
+    let tempx = Math.min(Math.max(x, -480000), 480000);
+    let tempy = Math.min(Math.max(y, -480000), 480000);
+    let p3 = new Point(tempx, tempy);
+
+    if (Point.distance(p2, p3) > 100 && Point.distance(p1, p3) < distance) {
+      NS.M20.centerCameraTo(tempx, tempy);
+      setTimeout(() => NS.teleport(), 250);
+      return;
+    }
+
+    if (distance < p) {
+      if (distance > 100) {
+        setTimeout(() => NS.teleport(), 2000);
+      } else {
+        NS.teleport.camera = {};
+        NS.teleport.teleporting = false;
+      }
+      NS.M20.moveCameraBy(Math.round(-window.innerWidth / OWOP.camera.zoom / 2 + dx), Math.round(-window.innerHeight / OWOP.camera.zoom / 2 + dy));
+      return;
+    }
+    NS.M20.moveCameraBy(Math.round(xdirection), Math.round(ydirection));
+    // if (Math.abs(dx) > 1000) {
+    //   NS.M20.moveCameraBy(distanceX, 0);
+    //   teleported = true;
+    // } else if (Math.abs(dy) > 1000) {
+    //   NS.M20.moveCameraBy(0, distanceY);
+    //   teleported = true;
+    // }
+    NS.teleport.teleporting = true;
+    setTimeout(() => NS.teleport(), 150);
+  }
+
+  NS.defaultCursors = {
+    "area protect": 1,// selectprotect (no space between)
+    copy: 1,
+    cursor: 1,
+    eraser: 1,// erase
+    export: 1,// select
+    fill: 1,// bucket*
+    line: 1,// wand
+    move: 1,
+    paste: 1,
+    pipette: 1,
+    protect: 1,// shield
+    write: 1,// text*
+    zoom: 1
+  };
+  NS.teleport.camera = {};
+  NS.teleport.teleporting = false;
   NS.rangeMap = rangeMap;
   NS.hue = hue;
   NS.rgb = rgb;
@@ -3894,6 +3946,13 @@ function init() {
     if (document.getElementById("dev-chat")) document.getElementById("dev-chat").parentNode.removeChild(document.getElementById("dev-chat")); // im so pissed at devchat for screaming at me every time i press a single letter while typing out something in the console its so annoying. thats why its the first thing i delete when initializing.
     NS.OPM = !!OWOP.misc;
     if (!NS.OPM) {
+      NS.localStorage = localStorage.NS;
+      if (!NS.localStorage) {
+        localStorage.NS = JSON.stringify({});
+        NS.localStorage = localStorage.NS;
+      }
+      NS.localStorage = JSON.parse(NS.localStorage);
+
       NS.modules.forEach(e => {
         0, 13, 14, 15, 16, 20, 22, 21, 23, 24, 25; // module numbers
         if (e.misc) NS.M0 = e;
@@ -3904,17 +3963,15 @@ function init() {
       });
       if (!NS.M0 || !NS.M13 || !NS.M14 || !NS.M20 || !NS.M21) {
         // im gonna make a localstorage check to make sure the reload doesnt happen indefinitely, and if the check happens at least 3 times then it will resume code execution without anymore reloads and provide a warning that the script wasnt loaded correctly, for now there wont be anything (this is a pre-release version currently).
-        // localStorage.NS;
-        // if (temp1)
-        let l = JSON.parse(localStorage.NS);
-        if (!l.reloadCheck) l.reloadCheck = 1;
-        if (l.reloadCheck === 3) {
-          delete l.reloadCheck;
-          localStorage.NS = JSON.stringify(l);
+
+        if (!NS.localStorage.reloadCheck) NS.localStorage.reloadCheck = 1;
+        if (NS.localStorage.reloadCheck === 3) {
+          delete NS.localStorage.reloadCheck;
+          localStorage.NS = JSON.stringify(NS.localStorage);
           OWOP.chat.local("Neko's Script was not loaded correctly, please reload the tab.");
         } else {
-          l.reloadCheck++;
-          localStorage.NS = JSON.stringify(l);
+          NS.localStorage.reloadCheck++;
+          localStorage.NS = JSON.stringify(NS.localStorage);
           location.reload();
         }
         return;
@@ -3981,6 +4038,9 @@ function init() {
               break;
             case 76:
               NS.extra.log = !NS.extra.log;
+              break;
+            case 27:
+              NS.teleport.camera = {};
               break;
           }
           (NS.extra.log && console.log(event));
