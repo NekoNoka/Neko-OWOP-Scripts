@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.4
+// @version      0.12.5
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -141,13 +141,13 @@ function install() {
           let placedColor = [(p.rgb & (255 << 0)) >> 0, (p.rgb & (255 << 8)) >> 8, (p.rgb & (255 << 16)) >> 16];
           if (Object.keys(this.whitelist).includes(`${p.id}`)) this.setPixel(p.x, p.y, placedColor);
           let pixel = this.queue[`${p.x},${p.y}`];
-          if (pixel) (this.borderCheck = true, pixel.placed = false, this.updateBorder(p.x, p.y));
+          if (pixel) (this.borderCheck = true, pixel.placed = false, this.chunkQueueTemp[`${Math.floor(p.x / 16)},${Math.floor(p.y / 16)}`] = true, this.updateBorder(p.x, p.y));
         }
       }.bind(this));
       NS.M14.eventSys.addListener(NS.M13.EVENTS.net.world.leave, function () {
         OWOP.sounds.play(OWOP.sounds.launch);
         this.disable();
-        this.border = {};
+        // this.border = {};
         console.log(arguments, "leave");
       }.bind(this));
       NS.M14.eventSys.addListener(NS.M13.EVENTS.net.world.join, function () {
