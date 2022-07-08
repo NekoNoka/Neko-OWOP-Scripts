@@ -588,25 +588,25 @@ function install() {
       }
       return NS.renderBorder(fx, ctx, time);
     });
-    let mouseStyler = document.createElement("style");
-    document.getElementById("viewport").appendChild(mouseStyler);
-    {
-      let i = NS.localStorage.cursors[OWOP.player.tool.id];
-      // i = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAACeElEQVRYw+2XsWsaYRiHH6VRSyGBEwepi5nsIFToWKUKDoVkyl/QIQhZRMdCJqGj0kUoGRw6FqcIGY4qnI6BBBwiFCqBKzcUDxoieMlgB/NdYtN6Z7yzGfyBy3eIj8/3vu/3HayyQGKvPoyX/ZvexwblfWymLIEMrb1UKFuGQk+PMLT2UqC8Vnb0UReAyOblUqBmAumjLlIgDkClpZhQ0edvx/9ty/zhJACdoWFC+cNJ10zNBJICcbR+FYDXz/wU0il2GrKrNeW1siO2rDM0AKhvZam0FPD1XIHy2ml5YUikkE6RPz0DX8/xkWBpSHSZMFRpKaapL9++YwwOHDU1E0jrV80tE+kMDXYa8j1TTkFZFrUwJKIcqrd1BHx8+YJESXYMynIOhaN7f31WSKdMqJP97FRNLTKnbLe9SGo7MgWVKMmmKSlTxhgcLDSnLA3d3SqAz8WjyfmWqxHK1UhtR0wovVk0obR+9UFQnlkPhfrI5iU7DZn6VpZQrsZ5q4veLP7ze4mSzMl+Fq5i6KMuvwaqx3GgUK7Gz0/vqLQUCumUaenPnLdurerNIlzF8IeT9I7fexYG2ghGxlIgDr4e+dMz6ltZAFRVRcqUZ1qammfBXbR+1ZYp222vHKqo6uSTKMnmv9cvrtEvruEqNrER3DXXxZqhtQlH92zVlOVpLwaj2AopU+Zr/s0E5OZ6IsD1Ude8Q4lxIaa9obVtFbplDemjLtL6GlKmPFUXIv0fRx4czBN7F7TePZh5u8eRLtsIRsYA0vraZOGmjaVA3HEzc9fQ3ZpxC8a+oTsnvpswtl+DROu7DTPXli0DxrYhN7rpQRE1tMoqM/Ibi49haAcCegQAAAAASUVORK5CYII=";
-      if (i) mouseStyler.innerHTML = `#viewport { cursor: url("${i.icon}") ${i.hotspot[0]} ${i.hotspot[1]}, pointer !important; }`;
-      else mouseStyler.innerHTML = `#viewport { }`;
-    }
-    let oldFunction = Object.getOwnPropertyDescriptor(OWOP.player, "tool").set;
-    Object.defineProperty(OWOP.player, 'tool', {
-      set: function (x) {
-        let i = NS.localStorage.cursors[x];
+    function setTools() {
+      let mouseStyler = document.createElement("style");
+      document.getElementById("viewport").appendChild(mouseStyler);
+      {
+        let i = NS.localStorage.cursors[OWOP.player.tool.id];
         // i = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAACeElEQVRYw+2XsWsaYRiHH6VRSyGBEwepi5nsIFToWKUKDoVkyl/QIQhZRMdCJqGj0kUoGRw6FqcIGY4qnI6BBBwiFCqBKzcUDxoieMlgB/NdYtN6Z7yzGfyBy3eIj8/3vu/3HayyQGKvPoyX/ZvexwblfWymLIEMrb1UKFuGQk+PMLT2UqC8Vnb0UReAyOblUqBmAumjLlIgDkClpZhQ0edvx/9ty/zhJACdoWFC+cNJ10zNBJICcbR+FYDXz/wU0il2GrKrNeW1siO2rDM0AKhvZam0FPD1XIHy2ml5YUikkE6RPz0DX8/xkWBpSHSZMFRpKaapL9++YwwOHDU1E0jrV80tE+kMDXYa8j1TTkFZFrUwJKIcqrd1BHx8+YJESXYMynIOhaN7f31WSKdMqJP97FRNLTKnbLe9SGo7MgWVKMmmKSlTxhgcLDSnLA3d3SqAz8WjyfmWqxHK1UhtR0wovVk0obR+9UFQnlkPhfrI5iU7DZn6VpZQrsZ5q4veLP7ze4mSzMl+Fq5i6KMuvwaqx3GgUK7Gz0/vqLQUCumUaenPnLdurerNIlzF8IeT9I7fexYG2ghGxlIgDr4e+dMz6ltZAFRVRcqUZ1qammfBXbR+1ZYp222vHKqo6uSTKMnmv9cvrtEvruEqNrER3DXXxZqhtQlH92zVlOVpLwaj2AopU+Zr/s0E5OZ6IsD1Ude8Q4lxIaa9obVtFbplDemjLtL6GlKmPFUXIv0fRx4czBN7F7TePZh5u8eRLtsIRsYA0vraZOGmjaVA3HEzc9fQ3ZpxC8a+oTsnvpswtl+DROu7DTPXli0DxrYhN7rpQRE1tMoqM/Ibi49haAcCegQAAAAASUVORK5CYII=";
         if (i) mouseStyler.innerHTML = `#viewport { cursor: url("${i.icon}") ${i.hotspot[0]} ${i.hotspot[1]}, pointer !important; }`;
         else mouseStyler.innerHTML = `#viewport { }`;
-        oldFunction.bind(this)(...arguments);
       }
-    });
-    function setTools() {
+      let oldFunction = Object.getOwnPropertyDescriptor(OWOP.player, "tool").set;
+      Object.defineProperty(OWOP.player, 'tool', {
+        set: function (x) {
+          let i = NS.localStorage.cursors[x];
+          // i = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAACeElEQVRYw+2XsWsaYRiHH6VRSyGBEwepi5nsIFToWKUKDoVkyl/QIQhZRMdCJqGj0kUoGRw6FqcIGY4qnI6BBBwiFCqBKzcUDxoieMlgB/NdYtN6Z7yzGfyBy3eIj8/3vu/3HayyQGKvPoyX/ZvexwblfWymLIEMrb1UKFuGQk+PMLT2UqC8Vnb0UReAyOblUqBmAumjLlIgDkClpZhQ0edvx/9ty/zhJACdoWFC+cNJ10zNBJICcbR+FYDXz/wU0il2GrKrNeW1siO2rDM0AKhvZam0FPD1XIHy2ml5YUikkE6RPz0DX8/xkWBpSHSZMFRpKaapL9++YwwOHDU1E0jrV80tE+kMDXYa8j1TTkFZFrUwJKIcqrd1BHx8+YJESXYMynIOhaN7f31WSKdMqJP97FRNLTKnbLe9SGo7MgWVKMmmKSlTxhgcLDSnLA3d3SqAz8WjyfmWqxHK1UhtR0wovVk0obR+9UFQnlkPhfrI5iU7DZn6VpZQrsZ5q4veLP7ze4mSzMl+Fq5i6KMuvwaqx3GgUK7Gz0/vqLQUCumUaenPnLdurerNIlzF8IeT9I7fexYG2ghGxlIgDr4e+dMz6ltZAFRVRcqUZ1qammfBXbR+1ZYp222vHKqo6uSTKMnmv9cvrtEvruEqNrER3DXXxZqhtQlH92zVlOVpLwaj2AopU+Zr/s0E5OZ6IsD1Ude8Q4lxIaa9obVtFbplDemjLtL6GlKmPFUXIv0fRx4czBN7F7TePZh5u8eRLtsIRsYA0vraZOGmjaVA3HEzc9fQ3ZpxC8a+oTsnvpswtl+DROu7DTPXli0DxrYhN7rpQRE1tMoqM/Ibi49haAcCegQAAAAASUVORK5CYII=";
+          if (i) mouseStyler.innerHTML = `#viewport { cursor: url("${i.icon}") ${i.hotspot[0]} ${i.hotspot[1]}, pointer !important; }`;
+          else mouseStyler.innerHTML = `#viewport { }`;
+          oldFunction.bind(this)(...arguments);
+        }
+      });
       OWOP.tool.addToolObject(new OWOP.tool.class('Cursor', OWOP.cursors.cursor, null, 1, tool => {
         // render protected chunks
         tool.setFxRenderer((fx, ctx, time) => {
@@ -2119,7 +2119,7 @@ function install() {
     }
     function x() {
       setTimeout(() => {
-        if (OWOP?.tool) setTools();
+        if (OWOP?.tool !== undefined && OWOP?.player?.tool?.id !== undefined) setTools();
         else setTimeout(x, 1.5e3);
       }, 1.5e3);
     }
