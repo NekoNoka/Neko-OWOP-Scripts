@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.5
+// @version      0.12.6
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -1804,6 +1804,66 @@ function install() {
             skip: 0,
             text: "00000000"
           },
+          "0": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "111101101101111"
+          },
+          "1": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "010110010010111"
+          },
+          "2": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "111001111100111"
+          },
+          "3": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "111001111001111"
+          },
+          "4": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "101101111001001"
+          },
+          "5": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "111100111001111"
+          },
+          "6": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "111100111101111"
+          },
+          "7": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "111001001001001"
+          },
+          "8": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "111101111101111"
+          },
+          "9": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: "111101111001111"
+          },
           a: {
             width: 3,
             height: 3,
@@ -1961,6 +2021,206 @@ function install() {
             text: `110010011`
           }
         }
+        tool.extra.cyrillic = {
+          а: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0111010001111111000110001`
+          },
+          б: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1111110000111101000111110`
+          },
+          в: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1111010001111101000111110`
+          },
+          г: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1111110000100001000010000`
+          },
+          д: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0111001010010101111110001`
+          },
+          е: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1111110000111111000011111`
+          },
+          ё: {
+            width: 5,
+            height: 7,
+            skip: 0,
+            text: `01010000001111110000111111000011111`
+          },
+          ж: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1010110101011101010110101`
+          },
+          з: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0111010001001101000101110`
+          },
+          и: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1000110011101011100110001`
+          },
+          й: {
+            width: 5,
+            height: 7,
+            skip: 0,
+            text: `01010001001000110011101011100110001`
+          },
+          к: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1000110010111001001010001`
+          },
+          л: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0111101001010010100110001`
+          },
+          м: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1000111011101011000110001`
+          },
+          н: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1000110001111111000110001`
+          },
+          о: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0111010001100011000101110`
+          },
+          п: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1111110001100011000110001`
+          },
+          р: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1111010001111101000010000`
+          },
+          с: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0111010001100001000101110`
+          },
+          т: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1111100100001000010000100`
+          },
+          у: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1000110001010100010001000`
+          },
+          ф: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0010001110101010111000100`
+          },
+          х: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1000101010001000101010001`
+          },
+          ц: {
+            width: 6,
+            height: 6,
+            skip: 2,
+            text: `100010100010100010100010111111000001`
+          },
+          ч: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1000110001011110000100001`
+          },
+          ш: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1010110101101011010111111`
+          },
+          щ: {
+            width: 6,
+            height: 6,
+            skip: 2,
+            text: `101010101010101010101010111111000001`
+          },
+          ъ: {
+            width: 4,
+            height: 5,
+            skip: 2,
+            text: `11000100011101010111`
+          },
+          ы: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1000110001111011010111101`
+          },
+          ь: {
+            width: 3,
+            height: 5,
+            skip: 2,
+            text: `100100111101111`
+          },
+          э: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0111010001001111000101110`
+          },
+          ю: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `1011110101111011010110111`
+          },
+          я: {
+            width: 5,
+            height: 5,
+            skip: 2,
+            text: `0111110001011111000110001`
+          }
+        }
         tool.extra.position = 0;
         tool.extra.start = undefined;
         tool.extra.end = undefined;
@@ -1969,9 +2229,10 @@ function install() {
           let furthestPos = [...pos];
           function setLetter(letter, pos, func) {
             if (letter === "\n") return 1;
-            if (!tool.extra.newText[letter]) return 0;
-            let data = tool.extra.newText.data;
             let letterData = tool.extra.newText[letter];
+            if (!letterData) letterData = tool.extra.cyrillic[letter];
+            if (!letterData) return 0;
+            // let data = tool.extra.newText.data;
             for (let x = 0; x < letterData.width; x++) {
               for (let y = 0; y < letterData.height; y++) {
                 if (letterData.text[x + y * letterData.width] !== "0") func(pos[0] + x, pos[1] + y + letterData.skip);
@@ -1980,7 +2241,7 @@ function install() {
             return letterData;
           }
           for (let p5 = 0; p5 < t.length; p5++) {
-            let l = setLetter(t[p5].toLowerCase(), localPos, func);
+            let l = setLetter(t[p5].toLocaleLowerCase(), localPos, func);
             if (l === 0) continue;
             if (l === 1) {
               localPos[0] = pos[0];
