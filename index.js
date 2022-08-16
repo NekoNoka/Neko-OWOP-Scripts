@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.6
+// @version      0.12.7
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
