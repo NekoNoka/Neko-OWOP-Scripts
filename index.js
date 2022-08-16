@@ -2021,6 +2021,7 @@ function install() {
             text: `110010011`
           }
         }
+        /* this is kept here for future use in alternative fonts
         tool.extra.cyrillic = {
           а: {
             width: 5,
@@ -2219,6 +2220,207 @@ function install() {
             height: 5,
             skip: 2,
             text: `0111110001011111000110001`
+          }
+        }
+        */
+        tool.extra.cyrillic = {
+          а: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `010101111101101`
+          },
+          б: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `111100111101111`
+          },
+          в: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `110101110101110`
+          },
+          г: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `111100100100100`
+          },
+          д: {
+            width: 5,
+            height: 5,
+            skip: 1,
+            text: `0111001010010101111110001`
+          },
+          е: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `111100111100111`
+          },
+          ё: {
+            width: 3,
+            height: 7,
+            skip: -1,
+            text: `101000111100111100111`
+          },
+          ж: {
+            width: 5,
+            height: 5,
+            skip: 1,
+            text: `1010110101011101010110101`
+          },
+          з: {
+            width: 4,
+            height: 5,
+            skip: 1,
+            text: `01101001001010010110`
+          },
+          и: {
+            width: 4,
+            height: 5,
+            skip: 1,
+            text: `10011001101111011001`
+          },
+          й: {
+            width: 4,
+            height: 8,
+            skip: -2,
+            text: `01000010000010011001101111011001`
+          },
+          к: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `101101110101101`
+          },
+          л: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `010101101101101`
+          },
+          м: {
+            width: 5,
+            height: 5,
+            skip: 1,
+            text: `1000111011101011000110001`
+          },
+          н: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `101101111101101`
+          },
+          о: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `010101101101010`
+          },
+          п: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `111101101101101`
+          },
+          р: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `110101110100100`
+          },
+          с: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `111100100100111`
+          },
+          т: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `111010010010010`
+          },
+          у: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `101101010010100`
+          },
+          ф: {
+            width: 5,
+            height: 5,
+            skip: 1,
+            text: `0010001110101010111000100`
+          },
+          х: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `101101010101101`
+          },
+          ц: {
+            width: 4,
+            height: 6,
+            skip: 1,
+            text: `101010101010101011100011`
+          },
+          ч: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `101101111001001`
+          },
+          ш: {
+            width: 5,
+            height: 5,
+            skip: 1,
+            text: `1010110101101011010111111`
+          },
+          щ: {
+            width: 6,
+            height: 6,
+            skip: 1,
+            text: `101010101010101010101010111110000011`
+          },
+          ъ: {
+            width: 4,
+            height: 5,
+            skip: 1,
+            text: `11000100011101010111`
+          },
+          ы: {
+            width: 5,
+            height: 5,
+            skip: 1,
+            text: `1000110001111011010111101`
+          },
+          ь: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `100100111101111`
+          },
+          э: {
+            width: 4,
+            height: 5,
+            skip: 1,
+            text: `01101001001110010110`
+          },
+          ю: {
+            width: 5,
+            height: 5,
+            skip: 1,
+            text: `1011110101111011010110111`
+          },
+          я: {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `011101011101101`
           }
         }
         tool.extra.position = 0;
