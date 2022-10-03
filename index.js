@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.7
+// @version      0.12.8
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -472,6 +472,18 @@ function install() {
       }
       img.src = cursorURL;
     }
+    // fixing all the damn cache issues that i hate cause halloween sucks man i dont want to have to do this again for christmas
+    iconStyler.innerHTML += `button { border-image: url("https://www.ourworldofpixels.com/img/button.png") 6 repeat; }`;
+    iconStyler.innerHTML += `button:active { border-image: url("https://www.ourworldofpixels.com/img/button_pressed.png") 6 repeat; }`;
+
+    iconStyler.innerHTML += `.wincontainer { border-image: url("https://www.ourworldofpixels.com/img/window_in.png") 6 repeat; }`;
+    iconStyler.innerHTML += `#windows > div, .winframe, #help { border-image: url("https://www.ourworldofpixels.com/img/window_out.png") 11 repeat; border-image-outset: 4px; }`;
+
+    iconStyler.innerHTML += `body { background-image: url("https://www.ourworldofpixels.com/img/unloaded.png"); }`;
+
+    iconStyler.innerHTML += `#playercount-display, #xy-display, #palette-create, #palette, .framed, .context-menu { border-image: url("https://www.ourworldofpixels.com/img/small_border.png") 5 repeat; }`;
+
+    document.getElementById("help-button").children[0].src = "https://www.ourworldofpixels.com/img/help.png";
   }
 
   (function () {
@@ -3042,9 +3054,11 @@ function install() {
           width: 36px;
           height: 36px;
         }
+        /* switch background #aba389 to #8b08bf on halloween */
+        /* switch color #7e635c to #fdfbff on halloween */
         .NSdiv2 {
-          background: #aba389;
-          color: #7e635c;
+          background: #8b08bf;
+          color: #fdfbff;
           border-radius: 6px;
           border: initial;
           padding: 4px;
@@ -3682,10 +3696,14 @@ function install() {
                   margin: 0px 1px;
                 }
                 button.on {
-                  background: #9a937b;
+                  background: #6e009a;
                 }
               </style>
-              <div style="display: flex;margin: 0px;border-radius: 5px;background-color: #7e635c;box-shadow: inset 3px 2px 0px 0px #4d313b;align-content: space-around;">
+              <!--dont be a idiot, put the #7e635c back into the styling of background-color when halloween is over
+and put it to #5e038f when halloween happens
+also dont forget to switch button.on up there to #9a937b and switch to #6e009a on halloween
+change box-shadow to #440f58 on halloween and #4d313b when not-->
+              <div style="display: flex;margin: 0px;border-radius: 5px;background-color: #5e038f;box-shadow: inset 3px 2px 0px 0px #440f58;align-content: space-around;">
                 <span style="border: 10px #0000 solid;">
                   <div class="tab">
                     <div style="align-content: center;margin: 0px 0px 5px 0px;display: flex;justify-content: space-between;">
@@ -3702,7 +3720,10 @@ function install() {
                 </span>
               </div>
               <div style="width: 5px;"></div>
-              <div style="display: flex;margin: 0px;border-radius: 5px;background-color: #7e635c;box-shadow: inset 3px 2px 0px 0px #4d313b;align-content: space-around;">
+              <!--dont be a idiot, put the #7e635c back into the styling of background-color when halloween is over
+and put it to #5e038f when halloween happens
+change box-shadow to #440f58 on halloween and #4d313b when not-->
+              <div style="display: flex;margin: 0px;border-radius: 5px;background-color: #5e038f;box-shadow: inset 3px 2px 0px 0px #440f58;align-content: space-around;">
                 <span style="border: 10px #0000 solid;">
                   <div class="tab">
                     <span>
