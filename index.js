@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.8
+// @version      0.12.9
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -472,18 +472,20 @@ function install() {
       }
       img.src = cursorURL;
     }
-    // fixing all the damn cache issues that i hate cause halloween sucks man i dont want to have to do this again for christmas
-    iconStyler.innerHTML += `button { border-image: url("https://www.ourworldofpixels.com/img/button.png") 6 repeat; }`;
-    iconStyler.innerHTML += `button:active { border-image: url("https://www.ourworldofpixels.com/img/button_pressed.png") 6 repeat; }`;
+    if (false) {
+      // fixing all the damn cache issues that i hate cause halloween sucks man i dont want to have to do this again for christmas
+      iconStyler.innerHTML += `button { border-image: url("https://www.ourworldofpixels.com/img/button.png") 6 repeat; }`;
+      iconStyler.innerHTML += `button:active { border-image: url("https://www.ourworldofpixels.com/img/button_pressed.png") 6 repeat; }`;
 
-    iconStyler.innerHTML += `.wincontainer { border-image: url("https://www.ourworldofpixels.com/img/window_in.png") 6 repeat; }`;
-    iconStyler.innerHTML += `#windows > div, .winframe, #help { border-image: url("https://www.ourworldofpixels.com/img/window_out.png") 11 repeat; border-image-outset: 4px; }`;
+      iconStyler.innerHTML += `.wincontainer { border-image: url("https://www.ourworldofpixels.com/img/window_in.png") 6 repeat; }`;
+      iconStyler.innerHTML += `#windows > div, .winframe, #help { border-image: url("https://www.ourworldofpixels.com/img/window_out.png") 11 repeat; border-image-outset: 4px; }`;
 
-    iconStyler.innerHTML += `body { background-image: url("https://www.ourworldofpixels.com/img/unloaded.png"); }`;
+      iconStyler.innerHTML += `body { background-image: url("https://www.ourworldofpixels.com/img/unloaded.png"); }`;
 
-    iconStyler.innerHTML += `#playercount-display, #xy-display, #palette-create, #palette, .framed, .context-menu { border-image: url("https://www.ourworldofpixels.com/img/small_border.png") 5 repeat; }`;
+      iconStyler.innerHTML += `#playercount-display, #xy-display, #palette-create, #palette, .framed, .context-menu { border-image: url("https://www.ourworldofpixels.com/img/small_border.png") 5 repeat; }`;
 
-    document.getElementById("help-button").children[0].src = "https://www.ourworldofpixels.com/img/help.png";
+      document.getElementById("help-button").children[0].src = "https://www.ourworldofpixels.com/img/help.png";
+    }
   }
 
   (function () {
@@ -1406,184 +1408,6 @@ function install() {
           tool.extra.c = 0;
         });
       }));
-      OWOP.tool.addToolObject(new OWOP.tool.class('Paste', OWOP.cursors.paste, null, 1, tool => {
-        tool.extra.state = {
-          chunkize: false,
-          rc: () => tool.extra.renderData(0b00),
-          rcc: () => tool.extra.renderData(0b01),
-          fh: () => tool.extra.renderData(0b10),
-          fv: () => tool.extra.renderData(0b11)
-        };
-        tool.extra.img = undefined;
-        tool.extra.data = undefined;
-        tool.extra.renderData = function (type) {
-          let transpose3 = function (m) {
-            let result = new Array(m[0].length);
-            for (let i = 0; i < m[0].length; i++) {
-              result[i] = new Array(m.length - 1);
-              for (let j = m.length - 1; j > -1; j--) {
-                result[i][j] = m[j][i];
-              }
-            }
-            return result;
-          };
-
-          let reverseRows = function (m) {
-            return m.reverse();
-          };
-
-          let reverseCols = function (m) {
-            for (let i = 0; i < m.length; i++) {
-              m[i].reverse();
-            }
-            return m;
-          };
-
-          let rotateCc = m => transpose3(m).reverse();
-          let rotateCw = m => transpose3(m.reverse());
-          switch (type) {
-            case 0: {
-              tool.extra.data = rotateCw(tool.extra.data);
-            } break;
-            case 1: {
-              tool.extra.data = rotateCc(tool.extra.data);
-            } break;
-            case 2: {
-              reverseCols(tool.extra.data);
-            } break;
-            case 3: {
-              reverseRows(tool.extra.data);
-            } break;
-          }
-          ((arr, onblob) => {
-            let c = document.createElement('canvas');
-            let w = arr[0].length;
-            let h = arr.length;
-            c.width = w;
-            c.height = h;
-            let ctx = c.getContext('2d');
-            let d = ctx.createImageData(w, h);
-            for (let j = 0; j < h; j++) {
-              for (let i = 0; i < w; i++) {
-                let pix = arr[j][i];
-                d.data[4 * (j * w + i)] = pix[0];
-                d.data[4 * (j * w + i) + 1] = pix[1];
-                d.data[4 * (j * w + i) + 2] = pix[2];
-                d.data[4 * (j * w + i) + 3] = 255;
-              }
-            }
-            ctx.putImageData(d, 0, 0);
-            c.toBlob(onblob);
-          })(tool.extra.data, b => {
-            let url = URL.createObjectURL(b);
-            let img = new Image();
-            img.onload = () => tool.extra.img = img;
-            img.src = url;
-          });
-        }
-        tool.setFxRenderer((fx, ctx, time) => {
-          let defaultFx = OWOP.fx.player.RECT_SELECT_ALIGNED(1);
-          if (someRenderer(fx, ctx, time, defaultFx)) return;
-
-          let p9 = OWOP.camera.zoom;
-          let pp = OWOP.mouse.tileX;
-          let pD = OWOP.mouse.tileY;
-
-          if (tool.extra.state.chunkize) {
-            pp = Math.floor(pp / 16) * 16;
-            pD = Math.floor(pD / 16) * 16;
-          }
-
-          pp -= OWOP.camera.x;
-          pD -= OWOP.camera.y;
-
-          // if (p2.length) {
-          //   ctx.globalAlpha = 0.8;
-
-          //for (let pS = 0; pS < p2.length; pS++) {
-          //    ctx.strokeStyle = C.toHTML(p2[pS][2]);
-          //    ctx.strokeRect((p2[pS][0] - OWOP.camera.x) * p9, (p2[pS][1] - OWOP.camera.y) * p9, p9, p9);
-          //}
-
-          //   return 0;
-          // }
-          if (tool.extra.img) {
-            ctx.globalAlpha = 0.5 + Math.sin(time / 500) / 4;
-            ctx.strokeStyle = '#000000';
-            ctx.scale(p9, p9);
-            ctx.drawImage(tool.extra.img, pp, pD);
-            ctx.scale(1 / p9, 1 / p9);
-            ctx.globalAlpha = 0.8;
-            ctx.strokeRect(pp * p9, pD * p9, tool.extra.img.width * p9, tool.extra.img.height * p9);
-            return 0;
-          }
-        });
-        tool.setEvent('select', () => {
-          if (tool.extra.k) {
-            if (tool.extra.k instanceof Image) tool.extra.k = NS.getImageData(tool.extra.k);
-            tool.extra.data = tool.extra.k;
-            tool.extra.renderData();
-            delete tool.extra.k;
-            return;
-          }
-          let p6 = document.createElement('input');
-          p6.type = 'file';
-          p6.accept = 'image/*';
-          p6.addEventListener('change', () => {
-            if (!p6.files || !p6.files[0]) return;
-            let p7 = new FileReader();
-            p7.addEventListener('load', () => {
-              let p8 = new Image();
-              p8.addEventListener('load', () => {
-                tool.extra.data = NS.getImageData(p8);
-                tool.extra.renderData();
-              });
-              p8.src = p7.result;
-            });
-            p7.readAsDataURL(p6.files[0]);
-          });
-          p6.click();
-        });
-        tool.setEvent('mousedown', (mouse, event) => {
-          if (!(mouse.buttons & 1)) return;
-          if (!tool.extra.data) return;
-          let x = mouse.tileX;
-          let y = mouse.tileY;
-          let data = tool.extra.data;
-          let fix = (p6, p7, p8) => Math.floor(p6 * (1 - p8) + p7 * p8);
-
-          if (tool.extra.state.chunkize) {
-            x = Math.floor(x / 16) * 16;
-            y = Math.floor(y / 16) * 16;
-          }
-          PM.startHistory();
-          for (let j = 0; j < data.length; j++) {
-            for (let i = 0; i < data[0].length; i++) {
-              let d = data[j][i];
-              let color = PM.getPixel(i + x, j + y);
-              if (!color) continue;
-              let pH = !isNaN(d[3]) ? d[3] / 255 : 1;
-              // let pH = 1;
-              // color = [fix(color[0], data[pD + 0], pH), fix(color[1], data[pD + 1], pH), fix(color[2], data[pD + 2], pH)];
-              color = [fix(color[0], d[0], pH), fix(color[1], d[1], pH), fix(color[2], d[2], pH)];
-              // use this when color is checked against being alpha color cause this is stupid
-              // var pix = PM.getPixel(i, j);
-              // if (!PM.queue[`${i},${j}`]) PM.setPixel(i, j, pix);
-              PM.setPixel(i + x, j + y, color);
-            }
-          }
-          PM.endHistory();
-        });
-        tool.setEvent('mousemove', (mouse, event) => {
-          if (!OWOP.OPM) return;
-          if (mouse.buttons !== 0) {
-            ((x, y, startX, startY) => {
-              OWOP.require("canvas_renderer").moveCameraBy((startX - x) / 16, (startY - y) / 16);
-            })(mouse.worldX, mouse.worldY, mouse.mouseDownWorldX, mouse.mouseDownWorldY);
-            return mouse.buttons;
-          }
-        });
-      }));
       OWOP.tool.addToolObject(new OWOP.tool.class('Copy', OWOP.cursors.copy, null, 1, tool => {
         tool.extra.state = {
           margin: false
@@ -1796,6 +1620,184 @@ function install() {
             }
           }
           tool.extra.tempCallback = undefined;
+        });
+      }));
+      OWOP.tool.addToolObject(new OWOP.tool.class('Paste', OWOP.cursors.paste, null, 1, tool => {
+        tool.extra.state = {
+          chunkize: false,
+          rc: () => tool.extra.renderData(0b00),
+          rcc: () => tool.extra.renderData(0b01),
+          fh: () => tool.extra.renderData(0b10),
+          fv: () => tool.extra.renderData(0b11)
+        };
+        tool.extra.img = undefined;
+        tool.extra.data = undefined;
+        tool.extra.renderData = function (type) {
+          let transpose3 = function (m) {
+            let result = new Array(m[0].length);
+            for (let i = 0; i < m[0].length; i++) {
+              result[i] = new Array(m.length - 1);
+              for (let j = m.length - 1; j > -1; j--) {
+                result[i][j] = m[j][i];
+              }
+            }
+            return result;
+          };
+
+          let reverseRows = function (m) {
+            return m.reverse();
+          };
+
+          let reverseCols = function (m) {
+            for (let i = 0; i < m.length; i++) {
+              m[i].reverse();
+            }
+            return m;
+          };
+
+          let rotateCc = m => transpose3(m).reverse();
+          let rotateCw = m => transpose3(m.reverse());
+          switch (type) {
+            case 0: {
+              tool.extra.data = rotateCw(tool.extra.data);
+            } break;
+            case 1: {
+              tool.extra.data = rotateCc(tool.extra.data);
+            } break;
+            case 2: {
+              reverseCols(tool.extra.data);
+            } break;
+            case 3: {
+              reverseRows(tool.extra.data);
+            } break;
+          }
+          ((arr, onblob) => {
+            let c = document.createElement('canvas');
+            let w = arr[0].length;
+            let h = arr.length;
+            c.width = w;
+            c.height = h;
+            let ctx = c.getContext('2d');
+            let d = ctx.createImageData(w, h);
+            for (let j = 0; j < h; j++) {
+              for (let i = 0; i < w; i++) {
+                let pix = arr[j][i];
+                d.data[4 * (j * w + i)] = pix[0];
+                d.data[4 * (j * w + i) + 1] = pix[1];
+                d.data[4 * (j * w + i) + 2] = pix[2];
+                d.data[4 * (j * w + i) + 3] = 255;
+              }
+            }
+            ctx.putImageData(d, 0, 0);
+            c.toBlob(onblob);
+          })(tool.extra.data, b => {
+            let url = URL.createObjectURL(b);
+            let img = new Image();
+            img.onload = () => tool.extra.img = img;
+            img.src = url;
+          });
+        }
+        tool.setFxRenderer((fx, ctx, time) => {
+          let defaultFx = OWOP.fx.player.RECT_SELECT_ALIGNED(1);
+          if (someRenderer(fx, ctx, time, defaultFx)) return;
+
+          let p9 = OWOP.camera.zoom;
+          let pp = OWOP.mouse.tileX;
+          let pD = OWOP.mouse.tileY;
+
+          if (tool.extra.state.chunkize) {
+            pp = Math.floor(pp / 16) * 16;
+            pD = Math.floor(pD / 16) * 16;
+          }
+
+          pp -= OWOP.camera.x;
+          pD -= OWOP.camera.y;
+
+          // if (p2.length) {
+          //   ctx.globalAlpha = 0.8;
+
+          //for (let pS = 0; pS < p2.length; pS++) {
+          //    ctx.strokeStyle = C.toHTML(p2[pS][2]);
+          //    ctx.strokeRect((p2[pS][0] - OWOP.camera.x) * p9, (p2[pS][1] - OWOP.camera.y) * p9, p9, p9);
+          //}
+
+          //   return 0;
+          // }
+          if (tool.extra.img) {
+            ctx.globalAlpha = 0.5 + Math.sin(time / 500) / 4;
+            ctx.strokeStyle = '#000000';
+            ctx.scale(p9, p9);
+            ctx.drawImage(tool.extra.img, pp, pD);
+            ctx.scale(1 / p9, 1 / p9);
+            ctx.globalAlpha = 0.8;
+            ctx.strokeRect(pp * p9, pD * p9, tool.extra.img.width * p9, tool.extra.img.height * p9);
+            return 0;
+          }
+        });
+        tool.setEvent('select', () => {
+          if (tool.extra.k) {
+            if (tool.extra.k instanceof Image) tool.extra.k = NS.getImageData(tool.extra.k);
+            tool.extra.data = tool.extra.k;
+            tool.extra.renderData();
+            delete tool.extra.k;
+            return;
+          }
+          let p6 = document.createElement('input');
+          p6.type = 'file';
+          p6.accept = 'image/*';
+          p6.addEventListener('change', () => {
+            if (!p6.files || !p6.files[0]) return;
+            let p7 = new FileReader();
+            p7.addEventListener('load', () => {
+              let p8 = new Image();
+              p8.addEventListener('load', () => {
+                tool.extra.data = NS.getImageData(p8);
+                tool.extra.renderData();
+              });
+              p8.src = p7.result;
+            });
+            p7.readAsDataURL(p6.files[0]);
+          });
+          p6.click();
+        });
+        tool.setEvent('mousedown', (mouse, event) => {
+          if (!(mouse.buttons & 1)) return;
+          if (!tool.extra.data) return;
+          let x = mouse.tileX;
+          let y = mouse.tileY;
+          let data = tool.extra.data;
+          let fix = (p6, p7, p8) => Math.floor(p6 * (1 - p8) + p7 * p8);
+
+          if (tool.extra.state.chunkize) {
+            x = Math.floor(x / 16) * 16;
+            y = Math.floor(y / 16) * 16;
+          }
+          PM.startHistory();
+          for (let j = 0; j < data.length; j++) {
+            for (let i = 0; i < data[0].length; i++) {
+              let d = data[j][i];
+              let color = PM.getPixel(i + x, j + y);
+              if (!color) continue;
+              let pH = !isNaN(d[3]) ? d[3] / 255 : 1;
+              // let pH = 1;
+              // color = [fix(color[0], data[pD + 0], pH), fix(color[1], data[pD + 1], pH), fix(color[2], data[pD + 2], pH)];
+              color = [fix(color[0], d[0], pH), fix(color[1], d[1], pH), fix(color[2], d[2], pH)];
+              // use this when color is checked against being alpha color cause this is stupid
+              // var pix = PM.getPixel(i, j);
+              // if (!PM.queue[`${i},${j}`]) PM.setPixel(i, j, pix);
+              PM.setPixel(i + x, j + y, color);
+            }
+          }
+          PM.endHistory();
+        });
+        tool.setEvent('mousemove', (mouse, event) => {
+          if (!OWOP.OPM) return;
+          if (mouse.buttons !== 0) {
+            ((x, y, startX, startY) => {
+              OWOP.require("canvas_renderer").moveCameraBy((startX - x) / 16, (startY - y) / 16);
+            })(mouse.worldX, mouse.worldY, mouse.mouseDownWorldX, mouse.mouseDownWorldY);
+            return mouse.buttons;
+          }
         });
       }));
       OWOP.tool.addToolObject(new OWOP.tool.class('Write', OWOP.cursors.write, null, 1, tool => {
@@ -3057,8 +3059,8 @@ function install() {
         /* switch background #aba389 to #8b08bf on halloween */
         /* switch color #7e635c to #fdfbff on halloween */
         .NSdiv2 {
-          background: #8b08bf;
-          color: #fdfbff;
+          background: #aba389;
+          color: #7e635c;
           border-radius: 6px;
           border: initial;
           padding: 4px;
@@ -3696,14 +3698,14 @@ function install() {
                   margin: 0px 1px;
                 }
                 button.on {
-                  background: #6e009a;
+                  background: #9a937b;
                 }
               </style>
               <!--dont be a idiot, put the #7e635c back into the styling of background-color when halloween is over
 and put it to #5e038f when halloween happens
 also dont forget to switch button.on up there to #9a937b and switch to #6e009a on halloween
 change box-shadow to #440f58 on halloween and #4d313b when not-->
-              <div style="display: flex;margin: 0px;border-radius: 5px;background-color: #5e038f;box-shadow: inset 3px 2px 0px 0px #440f58;align-content: space-around;">
+              <div style="display: flex;margin: 0px;border-radius: 5px;background-color: #7e635c;box-shadow: inset 3px 2px 0px 0px #4d313b;align-content: space-around;">
                 <span style="border: 10px #0000 solid;">
                   <div class="tab">
                     <div style="align-content: center;margin: 0px 0px 5px 0px;display: flex;justify-content: space-between;">
@@ -3723,7 +3725,7 @@ change box-shadow to #440f58 on halloween and #4d313b when not-->
               <!--dont be a idiot, put the #7e635c back into the styling of background-color when halloween is over
 and put it to #5e038f when halloween happens
 change box-shadow to #440f58 on halloween and #4d313b when not-->
-              <div style="display: flex;margin: 0px;border-radius: 5px;background-color: #5e038f;box-shadow: inset 3px 2px 0px 0px #440f58;align-content: space-around;">
+              <div style="display: flex;margin: 0px;border-radius: 5px;background-color: #7e635c;box-shadow: inset 3px 2px 0px 0px #4d313b;align-content: space-around;">
                 <span style="border: 10px #0000 solid;">
                   <div class="tab">
                     <span>
