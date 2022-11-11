@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.12.9
+// @version      0.12.10
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -37,7 +37,7 @@ if (window) window.NS = NS;
   EventTarget._eventlists = [];
   EventTarget.prototype.addEventListener = function (r, i, e) {
     if (EventTarget._eventlists) EventTarget._eventlists.push(i);
-    return k.bind(this)(...arguments)
+    return k.bind(this)(...arguments);
   };
 
   let l = EventTarget.prototype.removeEventListener;
@@ -282,7 +282,7 @@ function install() {
       if (placeOnce) p.o = true;
       let xchunk = Math.floor(p.x / 16);
       let ychunk = Math.floor(p.y / 16);
-      if (NS.M0.misc.world.protectedChunks[`${xchunk},${ychunk}`]) return false;
+      if (!NS.PM.ignoreProtectedChunks && NS.M0.misc.world.protectedChunks[`${xchunk},${ychunk}`]) return false;
       if (this.record) {
         let stackE = this.actionStack[`${x},${y}`];
         if (!(stackE instanceof Action)) {
@@ -329,7 +329,7 @@ function install() {
         if (!pixel) continue;
         let xchunk = Math.floor(pixel.x / 16);
         let ychunk = Math.floor(pixel.y / 16);
-        if (NS.M0.misc.world.protectedChunks[`${xchunk},${ychunk}`]) continue;
+        if (!NS.PM.ignoreProtectedChunks && NS.M0.misc.world.protectedChunks[`${xchunk},${ychunk}`]) continue;
         let xcc = Math.floor(tX / 16) * 16;
         let ycc = Math.floor(tY / 16) * 16;
         if (pixel.x < (xcc - 31) || pixel.y < (ycc - 31) || pixel.x > (xcc + 46) || pixel.y > (ycc + 46)) continue;
@@ -3976,6 +3976,7 @@ change box-shadow to #440f58 on halloween and #4d313b when not-->
       }
 
       options.appendChild(optionmaker("Disable PM", "button", !NS.PM.enabled, () => NS.PM.enabled = !NS.PM.enabled));
+      options.appendChild(optionmaker("Ignore Protection", "button", NS.PM.ignoreProtectedChunks, () => NS.PM.ignoreProtectedChunks = !NS.PM.ignoreProtectedChunks));
       options.appendChild(optionmaker("Clear PM", "select", void 0, () => NS.PM.clearQueue()));
       options.appendChild(optionmaker("Render PM", "button", NS.PM.renderBorder, () => NS.PM.renderBorder = !NS.PM.renderBorder));
       options.appendChild(optionmaker("Render Rings", "button", NS.PM.renderPlayerRings, () => NS.PM.renderPlayerRings = !NS.PM.renderPlayerRings));
