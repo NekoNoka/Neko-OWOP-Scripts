@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      0.13.0
+// @version      0.13.1
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -1198,6 +1198,7 @@ function install() {
 			OWOP.tool.addToolObject(new OWOP.tool.class('Fill', OWOP.cursors.fill, null, 1, tool => {
 				tool.extra.state = {
 					rainbow: false,
+					patterns: false,
 					checkered: false,
 					dither: false,
 					dither2: false,
@@ -1222,104 +1223,106 @@ function install() {
 						if (tool.extra.state.rainbow) selClr = hue(x - y, 8);
 						let thisClr = PM.getPixel(x, y);
 						if (isSame(thisClr, tool.extra.fillingColor) && !isSame(thisClr, selClr)) {
-							let pS = patternSieve(x, y, selClr);
-							if (pS[0]) PM.setPixel(x, y, pS[1]);
-
-							if (tool.extra.state.checkered) {
-								let pattern = [
-									[1, 0],
-									[0, 1]
-								];
-								if (pattern[modulo(x, 2)][modulo(y, 2)]) PM.setPixel(x, y, selClr);
-							} else if (tool.extra.state.dither) {
-								let pattern = [
-									[1, 0, 1, 0],
-									[0, 1, 0, 0],
-									[1, 0, 1, 0],
-									[0, 0, 0, 1]
-								];
-								if (pattern[modulo(x, 4)][modulo(y, 4)]) PM.setPixel(x, y, selClr);
-							} else if (tool.extra.state.dither2) {
-								let pattern = [
-									[0, 0],
-									[0, 1],
-									[0, 0],
-									[1, 0]
-								];
-								if (pattern[modulo(x, 4)][modulo(y, 2)]) PM.setPixel(x, y, selClr);
-							} else if (tool.extra.state.dither3) {
-								let pattern = [
-									[1, 0, 0, 0, 1, 0, 1, 0],
-									[0, 1, 0, 1, 0, 1, 0, 0],
-									[1, 0, 1, 0, 0, 0, 1, 0],
-									[0, 0, 0, 1, 0, 1, 0, 1],
-									[1, 0, 1, 0, 1, 0, 0, 0],
-									[0, 1, 0, 0, 0, 1, 0, 1],
-									[0, 0, 1, 0, 1, 0, 1, 0],
-									[0, 1, 0, 1, 0, 0, 0, 1]
-								];
-								if (pattern[modulo(x, 8)][modulo(y, 8)]) PM.setPixel(x, y, selClr);
-							} else if (tool.extra.state.dither4) {
-								let pattern = [
-									[0, 1, 0, 0],
-									[1, 1, 0, 0],
-									[0, 0, 1, 1],
-									[0, 0, 1, 0]
-								];
-								if (pattern[modulo(x, 4)][modulo(y, 4)]) PM.setPixel(x, y, selClr);
-							} else if (tool.extra.state.dither5) {
-								let pattern = [
-									[0, 1, 0, 0, 0, 0, 1, 0],
-									[1, 1, 0, 0, 0, 0, 1, 1],
-									[0, 0, 1, 1, 1, 1, 0, 0],
-									[0, 0, 1, 0, 0, 1, 0, 0],
-									[0, 0, 1, 0, 0, 1, 0, 0],
-									[0, 0, 1, 1, 1, 1, 0, 0],
-									[1, 1, 0, 0, 0, 0, 1, 1],
-									[0, 1, 0, 0, 0, 0, 1, 0]
-								];
-								if (pattern[modulo(x, 8)][modulo(y, 8)]) PM.setPixel(x, y, selClr);
-							} else if (tool.extra.state.dither6) {
-								let pattern = [
-									[0, 1, 1, 0, 0],
-									[1, 1, 1, 1, 0],
-									[1, 0, 1, 0, 0],
-									[1, 0, 1, 1, 0],
-									[0, 0, 0, 0, 0]
-								];
-								if (pattern[modulo(x, 5)][modulo(y, 5)]) PM.setPixel(x, y, selClr);
-							} else if (tool.extra.state.dither7) {
-								let pattern = [
-									[1, 1, 1, 0, 1, 1, 1, 0, 1, 0],
-									[0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
-									[1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
-									[1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-									[1, 0, 1, 1, 1, 0, 1, 0, 1, 1],
-									[0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-									[1, 0, 1, 1, 1, 0, 1, 1, 1, 0],
-									[0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
-									[1, 1, 1, 0, 1, 0, 1, 1, 1, 0],
-									[1, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-								];
-								if (pattern[modulo(x, 10)][modulo(y, 10)]) PM.setPixel(x, y, selClr);
-							} else if (tool.extra.state.dither8) {
-								let pattern = [
-									[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-									[0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-									[0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0],
-									[0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-									[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-									[0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-									[0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-									[0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1],
-									[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-									[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-									[0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0],
-									[0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
-								];
-								if (pattern[modulo(x, 12)][modulo(y, 12)]) PM.setPixel(x, y, selClr);
+							if (tool.extra.state.patterns) {
+								let pS = patternSieve(x, y, selClr);
+								if (pS[0]) PM.setPixel(x, y, pS[1]);
 							} else {
-								// PM.setPixel(x, y, selClr);
+								if (tool.extra.state.checkered) {
+									let pattern = [
+										[1, 0],
+										[0, 1]
+									];
+									if (pattern[modulo(x, 2)][modulo(y, 2)]) PM.setPixel(x, y, selClr);
+								} else if (tool.extra.state.dither) {
+									let pattern = [
+										[1, 0, 1, 0],
+										[0, 1, 0, 0],
+										[1, 0, 1, 0],
+										[0, 0, 0, 1]
+									];
+									if (pattern[modulo(x, 4)][modulo(y, 4)]) PM.setPixel(x, y, selClr);
+								} else if (tool.extra.state.dither2) {
+									let pattern = [
+										[0, 0],
+										[0, 1],
+										[0, 0],
+										[1, 0]
+									];
+									if (pattern[modulo(x, 4)][modulo(y, 2)]) PM.setPixel(x, y, selClr);
+								} else if (tool.extra.state.dither3) {
+									let pattern = [
+										[1, 0, 0, 0, 1, 0, 1, 0],
+										[0, 1, 0, 1, 0, 1, 0, 0],
+										[1, 0, 1, 0, 0, 0, 1, 0],
+										[0, 0, 0, 1, 0, 1, 0, 1],
+										[1, 0, 1, 0, 1, 0, 0, 0],
+										[0, 1, 0, 0, 0, 1, 0, 1],
+										[0, 0, 1, 0, 1, 0, 1, 0],
+										[0, 1, 0, 1, 0, 0, 0, 1]
+									];
+									if (pattern[modulo(x, 8)][modulo(y, 8)]) PM.setPixel(x, y, selClr);
+								} else if (tool.extra.state.dither4) {
+									let pattern = [
+										[0, 1, 0, 0],
+										[1, 1, 0, 0],
+										[0, 0, 1, 1],
+										[0, 0, 1, 0]
+									];
+									if (pattern[modulo(x, 4)][modulo(y, 4)]) PM.setPixel(x, y, selClr);
+								} else if (tool.extra.state.dither5) {
+									let pattern = [
+										[0, 1, 0, 0, 0, 0, 1, 0],
+										[1, 1, 0, 0, 0, 0, 1, 1],
+										[0, 0, 1, 1, 1, 1, 0, 0],
+										[0, 0, 1, 0, 0, 1, 0, 0],
+										[0, 0, 1, 0, 0, 1, 0, 0],
+										[0, 0, 1, 1, 1, 1, 0, 0],
+										[1, 1, 0, 0, 0, 0, 1, 1],
+										[0, 1, 0, 0, 0, 0, 1, 0]
+									];
+									if (pattern[modulo(x, 8)][modulo(y, 8)]) PM.setPixel(x, y, selClr);
+								} else if (tool.extra.state.dither6) {
+									let pattern = [
+										[0, 1, 1, 0, 0],
+										[1, 1, 1, 1, 0],
+										[1, 0, 1, 0, 0],
+										[1, 0, 1, 1, 0],
+										[0, 0, 0, 0, 0]
+									];
+									if (pattern[modulo(x, 5)][modulo(y, 5)]) PM.setPixel(x, y, selClr);
+								} else if (tool.extra.state.dither7) {
+									let pattern = [
+										[1, 1, 1, 0, 1, 1, 1, 0, 1, 0],
+										[0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+										[1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+										[1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+										[1, 0, 1, 1, 1, 0, 1, 0, 1, 1],
+										[0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+										[1, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+										[0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+										[1, 1, 1, 0, 1, 0, 1, 1, 1, 0],
+										[1, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+									];
+									if (pattern[modulo(x, 10)][modulo(y, 10)]) PM.setPixel(x, y, selClr);
+								} else if (tool.extra.state.dither8) {
+									let pattern = [
+										[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+										[0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+										[0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+										[0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+										[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+										[0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+										[0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+										[0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1],
+										[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+										[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+										[0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0],
+										[0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
+									];
+									if (pattern[modulo(x, 12)][modulo(y, 12)]) PM.setPixel(x, y, selClr);
+								} else {
+									PM.setPixel(x, y, selClr);
+								}
 							}
 
 							let t = isFillColor(x, y - 1);
@@ -3651,6 +3654,7 @@ function install() {
 							</span>
 							<span id="patternSpanPatternColors">
 							</span>
+							<!--
 							<span class="tabp">
 								<p>Type</p>
 								<select class="ns_dropdown" oninput="NS.patternSetting=this.value">
@@ -3666,6 +3670,7 @@ function install() {
 									<option value="8">Pattern 8</option>
 								</select>
 							</span>
+							-->
 						</div>
 					</div>
 					<div class="ns_horizontal"></div>
@@ -3932,6 +3937,16 @@ function install() {
 										<p>Rainbow</p>
 										<button class="optionButton switch" onclick="NS.optionbutton(this, 'rainbow')">off</button>
 									</div>
+									<div class="tabp">
+										<p>Enable Patterns</p>
+										<button class="optionButton switch" onclick="NS.optionbutton(this, 'patterns')">off</button>
+									</div>
+									<!--
+									<div class="tabp">
+										<p>Open Pattern Window</p>
+										<button class="optionButton switch" onclick="">off</button>
+									</div>
+									-->
 									<div class="tabp">
 										<p>Checkered</p>
 										<button class="optionButton switch" onclick="NS.optionbutton(this, 'checkered')">off</button>
