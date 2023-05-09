@@ -16,6 +16,13 @@ There is no inherent requirements to running the script.
 * You can install Tamper Monkey https://www.tampermonkey.net/
 * Then go to https://greasyfork.org/en/scripts/445667-neko-s-scripts and click install.
 
+# Browser Support
+These are browsers that I'm specifically supporting, any browser not listed is not guranteed to work.
+
+* Chrome
+* Firefox
+* Edge
+
 # Support Drop
 
 This script no longer works with OPM 2, you may request for features to be added to this script which is in OPM 2.
