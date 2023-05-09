@@ -9,6 +9,8 @@ Please create a new issue to leave suggestions on tools/features that I can add 
 
 There is [documentation](https://github.com/NekoNoka/Neko-OWOP-Scripts/blob/main/Documentation.md) WIP.
 
+I have a Discord Server where people can suggest features and announcements for updates.
+
 # Instructions
 
 There is no inherent requirements to running the script.
