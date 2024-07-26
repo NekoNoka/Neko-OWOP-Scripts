@@ -5272,7 +5272,7 @@ function install() {
 											<button class="optionButton click" onclick="NS.optionbutton(this, 'fv')">&nbsp;&nbsp;&nbsp;&nbsp;</button>
 										</div>
 										<div class="tabp">
-											<p>New Button</p>
+											<p>Right Color Clear</p>
 											<button class="optionButton switch" onclick="NS.optionbutton(this, 'newButton')">off</button>
 										</div>
 									</div>
