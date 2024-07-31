@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
+// @version      1.0.1
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -430,7 +430,9 @@ const IMPORTS = (function () {
                     let [x, y] = e.split(",");
                     for (let i = 0; i < 16; i++) {
                         for (let j = 0; j < 16; j++) {
-                            if (!this.queue[`${x * 16 + i},${y * 16 + j}`]?.placed) return NS.M20.centerCameraTo(x * 16 + i, y * 16 + j);
+                            let p = this.queue[`${x * 16 + i},${y * 16 + j}`];
+                            if (p)
+                            if (!p?.placed) return NS.M20.centerCameraTo(x * 16, y * 16);
                         }
                     }
                     this.moveQueue[e] = false;
