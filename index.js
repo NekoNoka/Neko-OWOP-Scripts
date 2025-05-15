@@ -2000,7 +2000,7 @@ function install() {
                         // options window will include options to switch the behavior of the tools, the game, and open/close all windows
                         break;
                     case 71:
-                        OWOP.renderer.showGrid(!OWOP.renderer.gridShown);
+                        //OWOP.renderer.showGrid(!OWOP.renderer.gridShown);
                         break;
                     case 90:
                         if (!event.ctrlKey) break;
@@ -5402,7 +5402,7 @@ function install() {
 
 function init() {
     // Math.abs(i*j) <= 510 ? Math.abs(i*j)%255 : 0
-    if (document.getElementById("load-scr")?.style?.transform) {
+    if (document.getElementById("load-scr")?.style?.transform && OWOP?.player?.tool) {
         console.time("Neko");
         console.log("Loading Neko's Scripts.");
         install();
