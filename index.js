@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.0.4
+// @version      1.0.5
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -1973,7 +1973,7 @@ function install() {
         NS.extra.log = false;
         function keydown(event) {
             let e = event.which || event.keyCode;
-            if (!(e >= 112 && e <= 123)) {
+            if (!(e >= 112 && e <= 123) && "TEXTAREA" !== document.activeElement.tagName) {
                 event.preventDefault();
                 event.stopPropagation();
             }
@@ -2081,9 +2081,9 @@ function install() {
                     case KeyCode.numpadSubtract:
                         --OWOP.camera.zoom;
                         break;
-                    case KeyCode.l:
-                        NS.extra.log = !NS.extra.log;
-                        break;
+                    // case KeyCode.l:
+                    //     NS.extra.log = !NS.extra.log;
+                    //     break;
                     case KeyCode.escape: // Esc
                         NS.teleport.camera = {};
                         break;
