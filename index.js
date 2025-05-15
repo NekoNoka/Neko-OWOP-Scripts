@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.0.5
+// @version      1.0.6
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -1888,23 +1888,8 @@ const IMPORTS = (function () {
             if (!object["__esModule"]) return x;
             //console.log(x);
             NS.modules.push(object);
-            //if (NS.modules.length === 43) Object.defineProperty = originalFunction;
             return x;
         }
-    }());
-
-    ((NS.browser) && !function () {
-        let k = EventTarget.prototype.addEventListener;
-        EventTarget["_eventlists"] = [];
-        EventTarget.prototype.addEventListener = function (_r, i, _e) {
-            if (EventTarget._eventlists) EventTarget._eventlists.push(i);
-            return k.bind(this)(...arguments);
-        };
-
-        let l = EventTarget.prototype.removeEventListener;
-        EventTarget.prototype.removeEventListener = function () {
-            return l.bind(this)(...arguments);
-        };
     }());
 
     (function () {
@@ -2037,9 +2022,6 @@ function install() {
                     case KeyCode.c:
                         // OWOP.player.tool = "eraser";
                         break;
-                    case KeyCode.z:
-                        OWOP.player.tool = "zoom";
-                        break;
                     case KeyCode.e:
                         OWOP.player.tool = "export";
                         break;
@@ -2052,9 +2034,9 @@ function install() {
                     case KeyCode.p:
                         OWOP.player.tool = "protect";
                         break;
-                    case KeyCode.a:
-                        OWOP.player.tool = "area protect";
-                        break;
+                    // case KeyCode.a:
+                    //     OWOP.player.tool = "area protect";
+                    //     break;
                     case KeyCode.h:
                         // make options window open/close
                         // options window will include options to switch the behavior of the tools, the game, and open/close all windows
@@ -2063,7 +2045,10 @@ function install() {
                         OWOP.renderer.showGrid(!OWOP.renderer.gridShown);
                         break;
                     case KeyCode.z:
-                        if (!event.ctrlKey) break;
+                        if (!event.ctrlKey) {
+                            OWOP.player.tool = "zoom";
+                            break;
+                        }
                         NS.PM.undo(event.shiftKey);
                         event.preventDefault();
                         break;
@@ -2105,47 +2090,6 @@ function install() {
                 }
             }
         }
-        let t = EventTarget._eventlists;
-        let down = [/Custom color\\nType three values separated by a comma: r,g,b\\n\(\.\.\.or the hex string: #RRGGBB\)\\nYou can add multiple colors at a time separating them with a space\./];
-        let up = [/function\(.\)\{var .=.\.which\|\|.\.keyCode;if\(delete .\[.\],"INPUT"!==document\.activeElement\.tagName\){var .=.\.player\.tool;if\(null!==.&&null!==.\.world&&.\.isEventDefined\("keyup"\)&&.\.call\("keyup",\[.,.\]\)\)return!1;13==.\?.\.chatInput\.focus\(\):16==.&&\(.\.player\.tool="cursor"\)}}/];
-        NS.etdown = false;
-        NS.etup = false;
-        NS.et = false;
-        if (NS.OPM) {
-            up.push('function(t) {\n              var e = t.which || t.keyCode;\n              if (delete b[e], "INPUT" !== document.activeElement.tagName) {\n                  var n = f.player.tool;\n                  if (null !== n && null !== E.world && n.isEventDefined("keyup") && n.call("keyup", [b, t])) return !1;\n                  13 == e ? k.chatInput.focus() : 16 == e && (f.player.tool = "cursor")\n              }\n          }');
-            up.push('function(t){var e=t.which||t.keyCode;if(delete b[e],"INPUT"!==document.activeElement.tagName){var n=f.player.tool;if(null!==n&&null!==E.world&&n.isEventDefined("keyup")&&n.call("keyup",[b,t]))return!1;13==e?k.chatInput.focus():16==e&&(f.player.tool="cursor")}}');
-        } else {
-            up.push('function(e){var t=e.which||e.keyCode;if(delete w[t],"INPUT"!==document.activeElement.tagName){var n=d.player.tool;if(null!==n&&null!==x.world&&n.isEventDefined("keyup")&&n.call("keyup",[w,e]))return!1;13==t?k.chatInput.focus():16==t&&(d.player.tool="cursor")}}');
-        }
-        for (let e of t) {
-            if (NS.etdown !== true) for (let d of down) {
-                if ((d instanceof RegExp && d.test(String(e))) || String(e) === d) {
-                    NS.etdown = true;
-                    NS.tempdown = e;
-                    console.log("found down");
-                }
-                if (NS.etdown === true) break;
-            }
-            if (NS.etup !== true) for (let u of up) {
-                if (String(e) === u) {
-                    NS.etup = true;
-                    NS.tempup = e;
-                    console.log("found up");
-                }
-                if (NS.etup === true) break;
-            }
-            if (NS.etdown === true && NS.etup === true) break;
-        }
-        if (NS.etdown !== true) console.warn("down was not found");
-        if (NS.etup !== true) console.warn("up was not found");
-        if (NS.etdown === true && NS.etup === true) {
-            NS.et = true;
-            window.removeEventListener("keydown", NS.tempdown);
-            window.removeEventListener("keyup", NS.tempup);
-            window.addEventListener("keydown", keydown);
-            window.addEventListener("keyup", keyup);
-        }
-        delete EventTarget._eventlists;
         window.addEventListener("keydown", keydown, true);
         window.addEventListener("keyup", keyup);
 
