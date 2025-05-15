@@ -1973,7 +1973,7 @@ function install() {
         NS.extra.log = false;
         function keydown(event) {
             let e = event.which || event.keyCode;
-            if (!(e >= 112 && e <= 123) && "TEXTAREA" !== document.activeElement.tagName) {
+            if (!(e >= 112 && e <= 123) && "TEXTAREA" !== document.activeElement.tagName && "INPUT" !== document.activeElement.tagName) {
                 event.preventDefault();
                 event.stopPropagation();
             }
