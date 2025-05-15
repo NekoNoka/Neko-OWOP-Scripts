@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1
+// @version      1.0.2
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -1888,7 +1888,7 @@ const IMPORTS = (function () {
             if (!object["__esModule"]) return x;
             //console.log(x);
             NS.modules.push(object);
-            if (NS.modules.length === 43) Object.defineProperty = originalFunction;
+            //if (NS.modules.length === 43) Object.defineProperty = originalFunction;
             return x;
         }
     }());
