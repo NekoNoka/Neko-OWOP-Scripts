@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.0.2
+// @version      1.0.4
 // @description  Script for OWOP
 // @author       Neko
 // @match        https://ourworldofpixels.com/*
@@ -432,7 +432,7 @@ const IMPORTS = (function () {
                         for (let j = 0; j < 16; j++) {
                             let p = this.queue[`${x * 16 + i},${y * 16 + j}`];
                             if (p)
-                            if (!p?.placed) return NS.M20.centerCameraTo(x * 16, y * 16);
+                                if (!p?.placed) return NS.M20.centerCameraTo(x * 16, y * 16);
                         }
                     }
                     this.moveQueue[e] = false;
@@ -1973,60 +1973,118 @@ function install() {
         NS.extra.log = false;
         function keydown(event) {
             let e = event.which || event.keyCode;
+            if (!(e >= 112 && e <= 123)) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const KeyCode = {
+                // Alphabet
+                a: 65, b: 66, c: 67, d: 68, e: 69, f: 70, g: 71, h: 72, i: 73,
+                j: 74, k: 75, l: 76, m: 77, n: 78, o: 79, p: 80, q: 81, r: 82,
+                s: 83, t: 84, u: 85, v: 86, w: 87, x: 88, y: 89, z: 90,
+
+                // Numbers (Top row)
+                zero: 48, one: 49, two: 50, three: 51, four: 52,
+                five: 53, six: 54, seven: 55, eight: 56, nine: 57,
+
+                // Special characters and symbols
+                backtick: 192, tilde: 192, dash: 189, underscore: 189,
+                equals: 187, plus: 187, leftBracket: 219, leftCurly: 219,
+                rightBracket: 221, rightCurly: 221, backslash: 220, pipe: 220,
+                semicolon: 186, colon: 186, quote: 222, doubleQuote: 222,
+                comma: 188, lessThan: 188, period: 190, greaterThan: 190,
+                slash: 191, question: 191, exclamation: 49, at: 50,
+                hash: 51, dollar: 52, percent: 53, caret: 54,
+                ampersand: 55, asterisk: 56, leftParen: 57, rightParen: 48,
+
+                // Function keys
+                f1: 112, f2: 113, f3: 114, f4: 115, f5: 116, f6: 117,
+                f7: 118, f8: 119, f9: 120, f10: 121, f11: 122, f12: 123,
+
+                // Control keys
+                enter: 13, space: 32, escape: 27, backspace: 8, tab: 9,
+                shift: 16, ctrl: 17, alt: 18, capsLock: 20, pause: 19,
+
+                // Navigation keys
+                insert: 45, home: 36, delete: 46, end: 35,
+                pageUp: 33, pageDown: 34,
+
+                // Arrow keys
+                arrowUp: 38, arrowDown: 40, arrowLeft: 37, arrowRight: 39,
+
+                // Numpad keys
+                numpad0: 96, numpad1: 97, numpad2: 98, numpad3: 99,
+                numpad4: 100, numpad5: 101, numpad6: 102, numpad7: 103,
+                numpad8: 104, numpad9: 105,
+                numpadMultiply: 106, numpadAdd: 107, numpadSubtract: 109,
+                numpadDecimal: 110, numpadDivide: 111, numpadEnter: 13
+            };
             if ("TEXTAREA" !== document.activeElement.tagName && "INPUT" !== document.activeElement.tagName) {
                 NS.keysdown[e] = !0;
                 let n = OWOP.player.tool;
                 if (undefined !== OWOP?.world && n?.isEventDefined("keydown") && n?.call("keydown", [NS.keysdown, event, true])) return !1;
                 switch (e) {
-                    case 80:
+                    case KeyCode.p:
                         OWOP.player.tool = "pipette";
                         break;
-                    case 77:
-                    case 81:
+                    case KeyCode.m:
+                    case KeyCode.q:
                         OWOP.player.tool = "move";
                         break;
-                    case 79:
+                    case KeyCode.o:
                         OWOP.player.tool = "cursor";
                         break;
-                    case 70:
+                    case KeyCode.c:
+                        // OWOP.player.tool = "eraser";
                         break;
-                    case 69:
+                    case KeyCode.z:
+                        OWOP.player.tool = "zoom";
                         break;
-                    case 66:
-                        //OWOP.player.tool = "fill";
+                    case KeyCode.e:
+                        OWOP.player.tool = "export";
                         break;
-                    case 72:
+                    case KeyCode.f:
+                        OWOP.player.tool = "fill";
+                        break;
+                    case KeyCode.l:
+                        OWOP.player.tool = "line";
+                        break;
+                    case KeyCode.p:
+                        OWOP.player.tool = "protect";
+                        break;
+                    case KeyCode.a:
+                        OWOP.player.tool = "area protect";
+                        break;
+                    case KeyCode.h:
                         // make options window open/close
                         // options window will include options to switch the behavior of the tools, the game, and open/close all windows
                         break;
-                    case 71:
-                        //OWOP.renderer.showGrid(!OWOP.renderer.gridShown);
+                    case KeyCode.g:
+                        OWOP.renderer.showGrid(!OWOP.renderer.gridShown);
                         break;
-                    case 90:
+                    case KeyCode.z:
                         if (!event.ctrlKey) break;
                         NS.PM.undo(event.shiftKey);
                         event.preventDefault();
                         break;
-                    case 89:
+                    case KeyCode.y:
                         if (!event.ctrlKey) break;
                         NS.PM.redo(event.shiftKey);
                         event.preventDefault();
                         break;
-                    case 112: // f1
+                    case KeyCode.f1: // f1
                         event.preventDefault();
                         break;
-                    case 107:
-                    case 187:
+                    case KeyCode.numpadAdd:
                         ++OWOP.camera.zoom;
                         break;
-                    case 109:
-                    case 189:
+                    case KeyCode.numpadSubtract:
                         --OWOP.camera.zoom;
                         break;
-                    case 76:
+                    case KeyCode.l:
                         NS.extra.log = !NS.extra.log;
                         break;
-                    case 27: // Esc
+                    case KeyCode.escape: // Esc
                         NS.teleport.camera = {};
                         break;
                 }
@@ -2088,7 +2146,7 @@ function install() {
             window.addEventListener("keyup", keyup);
         }
         delete EventTarget._eventlists;
-        window.addEventListener("keydown", keydown);
+        window.addEventListener("keydown", keydown, true);
         window.addEventListener("keyup", keyup);
 
         NS.PM.setup();
@@ -2104,7 +2162,7 @@ function install() {
             localStorage.NS = JSON.stringify(NS.localStorage);
         }
         if (!NS.localStorage.settings["Options"]) {
-            NS.localStorage.settings["Options"] = { x: 117, y: 34 };
+            NS.localStorage.settings["Options"] = { x: 117, y: 60 };
             localStorage.NS = JSON.stringify(NS.localStorage);
         }
     }());
@@ -3794,6 +3852,8 @@ function install() {
 				display: flex;
 				flex-direction: row;
 				justify-content: space-between;
+                position: fixed;
+                top: 27px;
 			}
 			.ns_righttopbar {
 				display: flex;
