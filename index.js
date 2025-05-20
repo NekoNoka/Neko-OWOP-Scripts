@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.0.9
+// @version      1.1.0
 // @description  Script for OWOP
 // @author       NekoNoka
 // @match        https://ourworldofpixels.com/*
@@ -367,13 +367,12 @@ const IMPORTS = (function () {
             this.checkMove = true;
             this.renderBorder = false;
             this.autoMove = false;
-            this.enableMod = false;
+            this.enableMod = true;
             this.whitelist = new Set();
             this.enabled = true;
             this.extra = {};
             this.extra.placeData = [];
             this.extra.chunkPlaceData = [];
-            this.ignoreProtectedChunks = true;
             let p1 = new Point(0, 0);
             for (let y = -47; y < 47; y++) {
                 for (let x = -47; x < 47; x++) {
@@ -538,7 +537,7 @@ const IMPORTS = (function () {
             if (c.length === 4) c.pop();
             if (c.find(e => !Number.isInteger(e) || e < 0 || e > 255) !== undefined) return false;
             let p = new Pixel(x, y, c, placeOnce);
-            if (!NS.PM.ignoreProtectedChunks && NS.M0.misc.world.protectedChunks[`${p.cx},${p.cy}`]) return false;
+            if (!NS.PM.ignoreProtectedChunks && OWOP.misc._world.protectedChunks[`${p.cx},${p.cy}`]) return false;
             if (this.record) {
                 let stack = this.actionStack[`${x},${y}`];
                 if (!(stack instanceof Action)) {
@@ -591,7 +590,7 @@ const IMPORTS = (function () {
                     let tY = OWOP.mouse.tileY;
                     let p = this.queue[`${tX + e.x},${tY + e.y}`];
                     if (!p) continue;
-                    if (!NS.PM.ignoreProtectedChunks && NS.M0.misc.world.protectedChunks[`${p.cx},${p.cy}`]) continue;
+                    if (!NS.PM.ignoreProtectedChunks && OWOP.misc._world.protectedChunks[`${p.cx},${p.cy}`]) continue;
                     let xcc = Math.floor(tX / 16) * 16;
                     let ycc = Math.floor(tY / 16) * 16;
                     if (p.x < (xcc - 31) || p.y < (ycc - 31) || p.x > (xcc + 46) || p.y > (ycc + 46)) continue;
@@ -1936,31 +1935,7 @@ function install() {
     // event stuff
     ((true) && !function () {
         if (document.getElementById("dev-chat")) document.getElementById("dev-chat").parentNode.removeChild(document.getElementById("dev-chat")); // im so pissed at devchat for screaming at me every time i press a single letter while typing out something in the console its so annoying. thats why its the first thing i delete.
-        // NS.modules.forEach(e => {
-        //     0, 13, 14, 15, 16, 20, 21, 22, 23, 24, 25; // module numbers
-        //     if (e.misc) NS.M0 = e;
-        //     if (e.EVENTS) NS.M13 = e;
-        //     if (e.eventSys) NS.M14 = e;
-        //     if (e.net) NS.M19 = e;
-        //     if (e.camera) NS.M20 = e;
-        //     if (e.updateClientFx) NS.M21 = e;
-        // });
-        // if (!NS.M0 || !NS.M13 || !NS.M14 || !NS.M19 || !NS.M20 || !NS.M21) {
-        //     if (!NS.localStorage.reloadCheck) NS.localStorage.reloadCheck = 1;
-        //     if (NS.localStorage.reloadCheck === 3) {
-        //         delete NS.localStorage.reloadCheck;
-        //         localStorage.NS = JSON.stringify(NS.localStorage);
-        //         OWOP.chat.local("Neko's Script was not loaded correctly, please reload the tab.");
-        //     } else {
-        //         NS.localStorage.reloadCheck++;
-        //         localStorage.NS = JSON.stringify(NS.localStorage);
-        //         location.reload();
-        //     }
-        //     return;
-        // } else {
-        //     delete NS.localStorage.reloadCheck;
-        //     localStorage.NS = JSON.stringify(NS.localStorage);
-        // }
+
         NS.installed = true;
         NS.keysdown = [];
         NS.extra = {};
@@ -2127,8 +2102,6 @@ function install() {
             NS.localStorage.settings["Options"] = { x: 117, y: 60 };
             localStorage.NS = JSON.stringify(NS.localStorage);
         }
-        
-        setTimeout(function(){OWOP.chat.local(`Many things are disabled in nekoscript for the moment but the basic drawing tools can still function.`)}, 1000);
     }());
 
     if (!NS.installed) return;
@@ -2193,7 +2166,7 @@ function install() {
 
     // owop listeners
     ((false) && !function () {
-        NS.M14.eventSys.addListener(NS.M13.EVENTS.net.world.join, function () {
+        OWOP.on(OWOP.events.net.world.join, function () {
             console.log(arguments, 'join');
         });
     }());
@@ -2281,8 +2254,8 @@ function install() {
 
     // tools
     ((true) && !function () {
-        let camera = OWOP.camera; // NS.M20.camera
-        let renderer = OWOP.renderer; // NS.M20.renderer
+        let camera = OWOP.camera;
+        let renderer = OWOP.renderer;
         // ! MARK FOR CHANGE
         // let C = OWOP.require('util/color').colorUtils;
         // let C = NS.colorUtils;
@@ -3965,7 +3938,7 @@ function install() {
                         }
                         if (command.length === 2) {
                             if (isNaN(Number(command[1]))) break;
-                            let p = NS.M0.misc.world.players[command[1]];
+                            let p = OWOP.misc._world.players[command[1]];
                             if (!p) {
                                 OWOP.chat.local(`Player ${command[1]} doesn't exist.`);
                                 break;
@@ -4010,7 +3983,6 @@ function install() {
                     } break;
                     case "wl":
                     case "whitelist": {
-                        return;
                         if (!command[1]) {
                             let wl = [];
                             PM.whitelist.forEach(v => wl.push(v));
@@ -4030,7 +4002,7 @@ function install() {
                                     console.log(4);
                                     break;
                                 }
-                                if (!Object.keys(NS.M0.playerList).includes(command[2])) {
+                                if (!OWOP.misc._world.players[command[2]]) {
                                     OWOP.chat.local(`Player ${command[2]} doesn't exist.`);
                                     console.log(5);
                                     break;
@@ -4082,7 +4054,7 @@ function install() {
             });
         });
         observer.observe(cm, { childList: true });
-        NS.M14.eventSys.addListener(NS.M13.EVENTS.net.chat, function (text) {
+        OWOP.on(owop.events.net.chat, function (text) {
             if (text.startsWith("[D]")) {
                 let nickname = text.split(": ")[0] + ": ";
                 text = text.slice(nickname.length);
@@ -4112,7 +4084,7 @@ function install() {
     }());
 
     // topbar elements
-    ((false) && !function () {
+    ((true) && !function () {
         // get rid of owop's displayers, since we cant really affect their native functions
         document.querySelector("#xy-display").style.display = "none";
         document.querySelector("#playercount-display").style.display = "none";
@@ -4207,32 +4179,32 @@ function install() {
             );
         }, 100);
         let playercountDisplay = document.querySelector("#ns_playercountDisplay");
-        // playercountDisplay.textContent = `${Object.keys(NS.M0.playerList).length + 1} cursors online`;
+        // playercountDisplay.textContent = `${Object.keys(OWOP.misc._world.players).length + 1} cursors online`;
         let ns_xydisplay_pointer = document.querySelector("#ns_xydisplay_pointer");
         ns_xydisplay_pointer.textContent = `X: 0, Y: 0`;
         let ns_chunkdisplay = document.querySelector("#ns_chunkdisplay");
         ns_chunkdisplay.textContent = `ChunkX: 0, ChunkY: 0`;
-        NS.M14.eventSys.addListener(NS.M13.EVENTS.net.world.join, function () {
+        OWOP.on(OWOP.events.net.world.join, function () {
             playercountDisplay.textContent = `Waiting.`;
         }.bind(this));
-        NS.M14.eventSys.addListener(NS.M13.EVENTS.net.world.leave, function () {
+        OWOP.on(OWOP.events.net.world.leave, function () {
             playercountDisplay.textContent = `Offline.`;
         }.bind(this));
-        NS.M14.eventSys.addListener(NS.M13.EVENTS.net.playerCount, function (count) {
+        OWOP.on(OWOP.events.net.playerCount, function (count) {
             playercountDisplay.textContent = `${count} cursors online`;
         }.bind(this));
     }());
 
     // setting wasd movement
-    ((false) && !function () {
-        // clearInterval(NS.M0.misc.tickInterval);
+    ((true) && !function () {
+        clearInterval(OWOP.misc.tickInterval);
         NS.tickIntervalNS = setInterval(mainTick, 1000 / OWOP.options.tickSpeed);
         function mainTick() {
             // console.log(t);
-            // NS.M14.eventSys.emit(OWOP.events.tick, undefined /*t*/);
-            // if (null !== OWOP.player.tool && null !== NS.M0.misc.world) OWOP.player.tool.call("tick");
+            OWOP.emit(OWOP.events.tick, undefined /*t*/);
+            if (null !== OWOP.player.tool && null !== OWOP.misc._world) OWOP.player.tool.call("tick");
             if (OWOP.player.tool === OWOP.tool.allTools.write) return;
-            // let t = ++NS.M0.misc.tick;
+            let t = ++OWOP.misc.tick;
             let e = Math.max(Math.min(OWOP.options.movementSpeed, 64), 1);
             let n = 0;
             let r = 0;
@@ -4241,7 +4213,7 @@ function install() {
             (NS.keysdown[40] || (NS.keysdown[83] && !NS.keysdown[16])) && (r += e);
             (NS.keysdown[39] || (NS.keysdown[68] && !NS.keysdown[16])) && (n += e);
             if (0 !== n || 0 !== r) {
-                NS.M20.moveCameraBy(n, r);
+                OWOP.camera.moveCameraBy(n, r);
                 A("mousemove", OWOP.mouse.x, OWOP.mouse.y);
             }
         }
@@ -4249,14 +4221,14 @@ function install() {
             OWOP.mouse.x = x;
             OWOP.mouse.y = y;
             let o = 0;
-            if (null !== NS.M0.misc.world) OWOP.mouse.validTile = NS.M0.misc.world.validMousePos(OWOP.mouse.tileX, OWOP.mouse.tileY);
+            if (null !== OWOP.misc._world) OWOP.mouse.validTile = OWOP.misc._world.validMousePos(OWOP.mouse.tileX, OWOP.mouse.tileY);
             if (null !== OWOP.player.tool) o = OWOP.player.tool.call(eventName, [OWOP.mouse]);
-            if (updateCoordDisplay(OWOP.mouse.tileX, OWOP.mouse.tileY)) NS.M21.updateClientFx();
+            if (updateCoordDisplay(OWOP.mouse.tileX, OWOP.mouse.tileY)) null;//NS.M21.updateClientFx();
             return o;
         }
         function updateCoordDisplay(x, y) {
-            if (!(NS.M0.misc.lastXYDisplay[0] !== x || NS.M0.misc.lastXYDisplay[1] !== y)) return false;
-            NS.M0.misc.lastXYDisplay = [x, y]
+            if (!(OWOP.misc.lastXYDisplay[0] !== x || OWOP.misc.lastXYDisplay[1] !== y)) return false;
+            OWOP.misc.lastXYDisplay = [x, y]
             if (OWOP.options.hexCoords) {
                 (x = (x < 0 ? "-" : "") + "0x" + Math.abs(x).toString(16), y = (y < 0 ? "-" : "") + "0x" + Math.abs(y).toString(16))
             }
@@ -4269,8 +4241,7 @@ function install() {
             let xydisplay = document.querySelector("#ns_xydisplay_pointer");
             let chunkXchunkYDisplay = document.querySelector("#ns_chunkdisplay");
             xydisplay.textContent = `X: ${x}, Y: ${y}`;
-            chunkXchunkYDisplay.textContent = `ChunkX: ${Math.floor(OWOP.mouse.tileX / 16)}, ChunkY: ${Math.floor(OWOP.mouse.tileY / 16)}`
-
+            chunkXchunkYDisplay.textContent = `ChunkX: ${Math.floor(OWOP.mouse.tileX / 16)}, ChunkY: ${Math.floor(OWOP.mouse.tileY / 16)}`;
         }
         window.addEventListener("mousemove", event => {
             let mouse = event;
@@ -4336,7 +4307,7 @@ function install() {
 
             function windowFunc(thisWindow) {
                 let divwindow = document.createElement("div");
-                divwindow.style = "width: 300px; overflow-y: scroll; overflow-x: scroll; max-height: 165px;"
+                divwindow.style = "width: 300px; overflow-y: scroll; overflow-x: scroll; max-height: 165px;";
                 divwindow.innerHTML = `<input id="pName" type="text" style="max-width: 100px; border: 0px;" placeholder="Name"></input>
         		<button id="addPalette" >Save Current Palette</button> <table id="paletteTable" style="overflow-x: hidden; overflow-y: scroll;"></table>`;
                 thisWindow.addObj(divwindow);
@@ -4421,6 +4392,33 @@ function install() {
                         localStorage.paletteJson = JSON.stringify(paletteJson);
                     }
                 }
+            }
+        }());
+
+        // keybinds
+        ((false) && !function () {
+            let windowName = "Keybinds";
+            let options = {
+                close: true,
+                minimize: false,
+                lock: true
+            }
+
+            let keybinds = {
+                // look into inverse color for contrast to be removable
+                // look into making my script modular so i can turn on and off modules
+            }
+
+            function windowFunc(thisWindow) {
+                let divwindow = document.createElement("div");
+                divwindow.style = "width: 300px; overflow-y: scroll; overflow-x: scroll; max-height: 165px;";
+                divwindow.innerHTML = ``;
+                thisWindow.addObj(divwindow);
+            }
+
+            NS.windows[windowName] = new GUIWindow(windowName, options, windowFunc).hide();
+
+            if (localStorage.paletteJson) {
             }
         }());
 
