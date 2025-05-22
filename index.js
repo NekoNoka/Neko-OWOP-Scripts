@@ -367,7 +367,7 @@ const IMPORTS = (function () {
             this.checkMove = true;
             this.renderBorder = false;
             this.autoMove = false;
-            this.enableMod = false;
+            this.enableMod = true;
             this.whitelist = new Set();
             this.enabled = true;
             this.extra = {};
@@ -575,7 +575,7 @@ const IMPORTS = (function () {
                     let ychunk = cy + e.y;
                     let currentChunk = this.chunkQueue[`${xchunk},${ychunk}`];
                     if (!currentChunk || currentChunk.placed || (new Date().getTime() - currentChunk.t) <= 1) continue;
-                    let k = !NS.M19.net.protocol.setChunk(xchunk, ychunk, currentChunk.data);
+                    let k = !OWOP.net.protocol.setChunk(xchunk, ychunk, currentChunk.data);
                     if (k) break;
                     for (let p of currentChunk.pixels) {
                         if (!p) continue;
