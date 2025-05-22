@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.1.0
+// @version      1.1.1
 // @description  Script for OWOP
 // @author       NekoNoka
 // @match        https://ourworldofpixels.com/*
@@ -367,7 +367,7 @@ const IMPORTS = (function () {
             this.checkMove = true;
             this.renderBorder = false;
             this.autoMove = false;
-            this.enableMod = true;
+            this.enableMod = false;
             this.whitelist = new Set();
             this.enabled = true;
             this.extra = {};
