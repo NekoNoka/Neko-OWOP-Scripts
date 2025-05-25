@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.1.2
+// @version      1.1.3
 // @description  Script for OWOP
 // @author       NekoNoka
 // @match        https://ourworldofpixels.com/*
@@ -1881,17 +1881,6 @@ const IMPORTS = (function () {
     const PM = new PixelManager();
     NS.PM = PM;
 
-    (false && (NS.browser) && !function () {
-        let originalFunction = Object.defineProperty;
-        Object.defineProperty = function (object, property, info) {
-            let x = originalFunction(object, property, info);
-            if (!object["__esModule"]) return x;
-            //console.log(x);
-            NS.modules.push(object);
-            return x;
-        }
-    }());
-
     (function () {
         document.addEventListener("mousemove", e => EE.emitQuiet("mousemove", e));
     })();
@@ -3529,6 +3518,11 @@ function install() {
                         y = Math.floor(y / 16) * 16;
                     }
                     PM.startHistory();
+                    // PM.pasteImage(data, [...OWOP.player.rightSelectedColor]);
+                    // break up images into 4x4 chunks of history segments which only calculate when someone gets near enough to the chunk
+                    // this functionality should be basically a 3x3 area of 4x4 chunks surrounding the center 4x4 that the player sits on
+                    // this can be globally centered or locally centered where it gets pasted on to do these distance calculations (it doesnt matter which one)
+                    // for moderators the areas would be bigger and can be calculated faster since we are directly affecting chunks not pixels and can en-masse do calculating of bigger areas easier, the sizes can be determined later
                     for (let j = 0; j < data.length; j++) {
                         for (let i = 0; i < data[0].length; i++) {
                             let d = data[j][i];
@@ -4179,7 +4173,8 @@ function install() {
             );
         }, 100);
         let playercountDisplay = document.querySelector("#ns_playercountDisplay");
-        // playercountDisplay.textContent = `${Object.keys(OWOP.misc._world.players).length + 1} cursors online`;
+        playercountDisplay.textContent = `${Object.keys(OWOP.misc._world.players).length + 1} cursors online`;
+        console.log(playercountDisplay.textContent);
         let ns_xydisplay_pointer = document.querySelector("#ns_xydisplay_pointer");
         ns_xydisplay_pointer.textContent = `X: 0, Y: 0`;
         let ns_chunkdisplay = document.querySelector("#ns_chunkdisplay");
@@ -4277,8 +4272,7 @@ function install() {
         }
 
         // players
-        ((false) && !function () {
-            NS.M0.playerListWindow.frame.style.visibility = "hidden";
+        ((true) && !function () {
             let windowName = "Players";
             let options = {
                 close: true,
@@ -4288,7 +4282,9 @@ function install() {
 
             function windowFunc(thisWindow) {
                 let divwindow = document.createElement("div");
-                divwindow.appendChild(NS.M0.playerListWindow.frame.children[1]);
+                OWOP.showPlayerList(true);
+                document.getElementById("player-list").parentElement.style.visibility = "hidden";
+                divwindow.appendChild(document.getElementById("player-list"));
                 thisWindow.container.classList.remove("wincontainer");
                 thisWindow.addObj(divwindow);
             }
