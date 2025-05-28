@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.1.3
+// @version      1.1.4
 // @description  Script for OWOP
 // @author       NekoNoka
 // @match        https://ourworldofpixels.com/*
@@ -2292,24 +2292,28 @@ function install() {
             let v = (6 - zoom) / 5;
             let strokeWidth = zoom > 6 ? zoom : 6 + (10 * v);
             let arcRadius = zoom > 6 ? zoom * e : 30 - (22 * v);
-            ctx.lineWidth = strokeWidth;
+
             ctx.beginPath();
             ctx.strokeStyle = "#000000";
+            ctx.lineWidth = strokeWidth;
             ctx.arc(x, y, arcRadius, 0, Math.PI * 2, false);
             ctx.stroke();
             ctx.closePath();
-            ctx.lineWidth = strokeWidth * 13 / 16;
+
             ctx.beginPath();
             ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = strokeWidth * 13 / 16;
             ctx.arc(x, y, arcRadius, 0, Math.PI * 2, false);
             ctx.stroke();
             ctx.closePath();
-            ctx.lineWidth = strokeWidth * 9 / 16;
+
             ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 9 / 16;
             ctx.fillStyle = ctx.strokeStyle = fx.extra.player.htmlRgb;
             ctx.arc(x, y, arcRadius, 0, Math.PI * 2, false);
             ctx.stroke();
             ctx.closePath();
+
             ctx.lineWidth = defaultLine;
             ctx.globalAlpha = 0.8;
         }
@@ -3688,6 +3692,7 @@ function install() {
                 if (e.rankRequired < 2) r++;
             }
             document.getElementById("toole-container").style.maxWidth = 40 * Math.ceil(r / 8) + "px";
+            document.getElementById("toole-container").parentElement.style.transform = "translate(7px, 60px)";
         }
         function a() {
             if (OWOP?.tool !== undefined && OWOP?.player?.tool?.id !== undefined) setTools();
@@ -4174,7 +4179,6 @@ function install() {
         }, 100);
         let playercountDisplay = document.querySelector("#ns_playercountDisplay");
         playercountDisplay.textContent = `${Object.keys(OWOP.misc._world.players).length + 1} cursors online`;
-        console.log(playercountDisplay.textContent);
         let ns_xydisplay_pointer = document.querySelector("#ns_xydisplay_pointer");
         ns_xydisplay_pointer.textContent = `X: 0, Y: 0`;
         let ns_chunkdisplay = document.querySelector("#ns_chunkdisplay");
