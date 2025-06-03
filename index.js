@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.1.4
+// @version      1.1.5
 // @description  Script for OWOP
 // @author       NekoNoka
 // @match        https://ourworldofpixels.com/*
@@ -368,7 +368,7 @@ const IMPORTS = (function () {
             this.renderBorder = false;
             this.autoMove = false;
             this.enableMod = true;
-            this.whitelist = new Set();
+            this.whitelist = {};
             this.enabled = true;
             this.extra = {};
             this.extra.placeData = [];
@@ -395,12 +395,12 @@ const IMPORTS = (function () {
             OWOP.on(OWOP.events.tick, function () {
                 this.enabled ? this.placePixel() : void 0
             }.bind(this));
-            OWOP.on(28, function (message) {
+            OWOP.on(OWOP.events.net.world.tilesUpdated, function (message) {
                 for (let i = 0; i < message.length; i++) {
                     let p = message[i];
                     if (p.id === OWOP.player.id) continue;
                     let placedColor = [(p.rgb & (255 << 0)) >> 0, (p.rgb & (255 << 8)) >> 8, (p.rgb & (255 << 16)) >> 16];
-                    if (this.whitelist.has(`${p.id}`)) this.setPixel(p.x, p.y, placedColor);
+                    if (this.whitelist[p.id]) this.setPixel(p.x, p.y, placedColor);
                     let pixel = this.queue[`${p.x},${p.y}`];
                     if (pixel) {
                         this.checkMove = true;
@@ -412,12 +412,12 @@ const IMPORTS = (function () {
                     }
                 }
             }.bind(this));
-            OWOP.on(22, function () {
+            OWOP.on(OWOP.events.net.world.leave, function () {
                 // OWOP.sounds.play(OWOP.sounds.launch);
                 this.disable();
                 console.log(arguments, "leave");
             }.bind(this));
-            OWOP.on(23, function () {
+            OWOP.on(OWOP.events.net.world.join, function () {
                 this.enable();
                 console.log(arguments, "join");
             }.bind(this));
@@ -868,158 +868,14 @@ const IMPORTS = (function () {
     }
 
     const base64 = {
-        // sourced from https://stackoverflow.com/questions/6213227/fastest-way-to-convert-a-number-to-radix-64-in-javascript
-        // coded by https://stackoverflow.com/users/520997/reb-cabin
-
-        _Rixits:
-            //   0       8       16      24      32      40      48      56     63
-            //   v       v       v       v       v       v       v       v      v
-            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/",
-        // You have the freedom, here, to choose the glyphs you want for
-        // representing your base-64 numbers. The ASCII encoding guys usually
-        // choose a set of glyphs beginning with ABCD..., but, looking at
-        // your update #2, I deduce that you want glyphs beginning with
-        // 0123..., which is a fine choice and aligns the first ten numbers
-        // in base 64 with the first ten numbers in decimal.
-
-        // This cannot handle negative numbers and only works on the
-        //     integer part, discarding the fractional part.
-        // Doing better means deciding on whether you're just representing
-        // the subset of javascript numbers of twos-complement 32-bit integers
-        // or going with base-64 representations for the bit pattern of the
-        // underlying IEEE floating-point number, or representing the mantissae
-        // and exponents separately, or some other possibility. For now, bail
-        fromBigInt: function (bigint) {
-            if (typeof bigint !== "bigint")
-                throw "The input is not valid";
-
-            let rixit = undefined; // like 'digit', only in some non-decimal radix
-            let residual = bigint;
-            let result = '';
-            while (true) {
-                rixit = residual % 64n;
-                result = this._Rixits.charAt(Number(rixit)) + result;
-                residual = residual / 64n;
-
-                if (residual === 0n)
-                    break;
-            }
-            return result;
-        },
+        // modified from https://stackoverflow.com/questions/6213227/fastest-way-to-convert-a-number-to-radix-64-in-javascript
         fromNumber: function (number) {
-            if (isNaN(Number(number)) || number === null ||
-                number === Number.POSITIVE_INFINITY)
-                throw "The input is not valid";
-            if (number < 0)
-                throw "Can't represent negative numbers now";
-
-            let rixit = undefined; // like 'digit', only in some non-decimal radix
-            let residual = Math.floor(number);
+            let residual = number;
             let result = '';
-            while (true) {
-                rixit = residual % 64;
-                result = this._Rixits.charAt(rixit) + result;
-                residual = Math.floor(residual / 64);
-
-                if (residual === 0)
-                    break;
-            }
-            return result;
-        },
-
-        toNumber: function (rixits) {
-            let result = 0;
-            rixits = rixits.split('');
-            for (let e of rixits) {
-                result = (result * 64) + this._Rixits.indexOf(e);
-            }
-            return result;
-        },
-        toBigInt: function (rixits) {
-            let result = 0n;
-            rixits = rixits.split('');
-            for (let e of rixits) {
-                result = (result * 64n) + BigInt(this._Rixits.indexOf(e));
-            }
-            return result;
-        }
-    }
-
-    const base256 = {
-        // sourced from https://stackoverflow.com/questions/6213227/fastest-way-to-convert-a-number-to-radix-64-in-javascript
-        // coded by https://stackoverflow.com/users/520997/reb-cabin
-        // modified by NekoNoka
-        _Rixits:
-            //   0       8       16      24      32      40      48      56     63
-            //   v       v       v       v       v       v       v       v      v
-            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖÙÚÛÜÝÞßàáâãäåçèéêëìíîïðñòóôõöùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžǞǟǠǡǦǧǨǩǪǫǬǭ",
-        // You have the freedom, here, to choose the glyphs you want for
-        // representing your base-64 numbers. The ASCII encoding guys usually
-        // choose a set of glyphs beginning with ABCD..., but, looking at
-        // your update #2, I deduce that you want glyphs beginning with
-        // 0123..., which is a fine choice and aligns the first ten numbers
-        // in base 64 with the first ten numbers in decimal.
-
-        // This cannot handle negative numbers and only works on the
-        //     integer part, discarding the fractional part.
-        // Doing better means deciding on whether you're just representing
-        // the subset of javascript numbers of twos-complement 32-bit integers
-        // or going with base-64 representations for the bit pattern of the
-        // underlying IEEE floating-point number, or representing the mantissae
-        // and exponents separately, or some other possibility. For now, bail
-        fromBigInt: function (bigint) {
-            if (typeof bigint !== "bigint")
-                throw "The input is not valid";
-            if (bigint < 0)
-                throw "Can't represent negative numbers now";
-
-            let rixit = undefined; // like 'digit', only in some non-decimal radix
-            let residual = bigint;
-            let result = '';
-            let l = BigInt(this._Rixits.length);
-            while (true) {
-                rixit = residual % l;
-                result = this._Rixits.charAt(Number(rixit)) + result;
-                residual = residual / l;
-
-                if (residual === 0n)
-                    break;
-            }
-            return result;
-        },
-        fromNumber: function (number) {
-            if (isNaN(Number(number)) || number === null ||
-                number === Number.POSITIVE_INFINITY)
-                throw "The input is not valid";
-            if (number < 0)
-                throw "Can't represent negative numbers now";
-
-            let rixit = undefined; // like 'digit', only in some non-decimal radix
-            let residual = Math.floor(number);
-            let result = '';
-            while (true) {
-                rixit = residual % 256;
-                result = this._Rixits.charAt(rixit) + result;
-                residual = Math.floor(residual / 256);
-
-                if (residual === 0)
-                    break;
-            }
-            return result;
-        },
-        toNumber: function (rixits) {
-            let result = 0;
-            rixits = rixits.split('');
-            for (let e = 0; e < rixits.length; e++) {
-                result = (result * 256) + this._Rixits.indexOf(rixits[e]);
-            }
-            return result;
-        },
-        toBigInt: function (rixits) {
-            let result = 0n;
-            rixits = rixits.split('');
-            for (let e = 0; e < rixits.length; e++) {
-                result = (result * 256n) + BigInt(this._Rixits.indexOf(rixits[e]));
+            let digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
+            while (residual !== 0) {
+                result = digits.charAt(residual % digits.length) + result;
+                residual = Math.floor(residual / digits.length);
             }
             return result;
         }
@@ -1059,47 +915,6 @@ const IMPORTS = (function () {
         paste: { icon: dataImages.paste, hotspot: [5, 2] },
         copy: { icon: dataImages.copy, hotspot: [5, 5] },
         write: { icon: dataImages.write, hotspot: [17, 8] }
-    }
-
-    const eventIds = {
-        loaded: 1,
-        init: 2,
-        tick: 3,
-        toolsRendered: 4,
-        toolsInitialized: 5,
-        logoMakeRoom: 6,
-        worldInitialized: 7,
-        windowAdded: 8,
-        captchaToken: 9,
-        loadingCaptcha: 10,
-        addChunk: 11,
-        rmChunk: 12,
-        updateChunk: 13,
-        moved: 14,
-        zoom: 15,
-        connecting: 16,
-        connected: 17,
-        disconnected: 18,
-        playerCount: 19,
-        chat: 20,
-        devChat: 21,
-        leave: 22,
-        join: 23,
-        joining: 24,
-        setId: 25,
-        playersMoved: 26,
-        playersLeft: 27,
-        tilesUpdated: 28,
-        teleported: 29,
-        load: 30,
-        unload: 31,
-        set: 32,
-        lock: 33,
-        allLoaded: 34,
-        rank: 35,
-        maxCount: 36,
-        donUntil: 37,
-        setupTools: 101
     }
 
     const textData = {}
@@ -1210,7 +1025,7 @@ const IMPORTS = (function () {
         ":": {
             width: 1,
             height: 3,
-            skip: 3,
+            skip: 2,
             text: `101`
         },
         ";": {
@@ -1243,6 +1058,24 @@ const IMPORTS = (function () {
             skip: 1,
             text: `101001010100101`
         },
+        "$": {
+            width: 3,
+            height: 7,
+            skip: 0,
+            text: `010111100010001111010`
+        },
+        ">": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `100010001010100`
+        },
+        "<": {
+            width: 3,
+            height: 5,
+            skip: 1,
+            text: `001010100010001`
+        },
         "_": {
             width: 3,
             height: 1,
@@ -1252,7 +1085,7 @@ const IMPORTS = (function () {
         "=": {
             width: 3,
             height: 3,
-            skip: 5,
+            skip: 2,
             text: `111000111`
         },
         "0": {
@@ -1632,197 +1465,395 @@ const IMPORTS = (function () {
     textData.cyrillic = {
         'а': {
             width: 3,
+            height: 4,
+            skip: 2,
+            text: `010101111101`
+        },
+        'б': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `111100111111`
+        },
+        'в': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `110111101110`
+        },
+        'г': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `111100100100`
+        },
+        'д': {
+            width: 4,
+            height: 4,
+            skip: 2,
+            text: `0110011011111001`
+        },
+        'е': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `111110100111`
+        },
+        'ё': {
+            width: 3,
+            height: 6,
+            skip: 0,
+            text: `101000111110100111`
+        },
+        'ж': {
+            width: 5,
+            height: 4,
+            skip: 2,
+            text: `10101011100111010101`
+        },
+        'з': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `111011001111`
+        },
+        'и': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `101101101011`
+        },
+        'й': {
+            width: 3,
+            height: 7,
+            skip: -1,
+            text: `100010000101101111101`
+        },
+        'к': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `101110101101`
+        },
+        'л': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `010101101101`
+        },
+        'м': {
+            width: 5,
+            height: 4,
+            skip: 2,
+            text: `10001110111010110001`
+        },
+        'н': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `101111101101`
+        },
+        'о': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `010101101010`
+        },
+        'п': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `111101101101`
+        },
+        'р': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `110101110100`
+        },
+        'с': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `111100100111`
+        },
+        'т': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `111010010010`
+        },
+        'у': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `101101010100`
+        },
+        'ф': {
+            width: 5,
+            height: 4,
+            skip: 2,
+            text: `01110101010111000100`
+        },
+        'х': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `101010010101`
+        },
+        'ц': {
+            width: 4,
+            height: 5,
+            skip: 2,
+            text: `10101010101011100011`
+        },
+        'ч': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `101101111001`
+        },
+        'ш': {
+            width: 5,
+            height: 4,
+            skip: 2,
+            text: `10101101011010111111`
+        },
+        'щ': {
+            width: 6,
+            height: 5,
+            skip: 2,
+            text: `101010101010101010111110000011`
+        },
+        'ъ': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `110010011011`
+        },
+        'ы': {
+            width: 4,
+            height: 4,
+            skip: 2,
+            text: `1001100111011101`
+        },
+        'ь': {
+            width: 2,
+            height: 4,
+            skip: 2,
+            text: `10101111`
+        },
+        'э': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `110011001110`
+        },
+        'ю': {
+            width: 4,
+            height: 4,
+            skip: 2,
+            text: `1011111110111011`
+        },
+        'я': {
+            width: 3,
+            height: 4,
+            skip: 2,
+            text: `011101011101`
+        },
+        'А': {
+            width: 3,
             height: 5,
             skip: 1,
             text: `010101111101101`
         },
-        'б': {
+        'Б': {
             width: 3,
             height: 5,
             skip: 1,
-            text: `111100111101111`
+            text: `111100111101110`
         },
-        'в': {
+        'В': {
             width: 3,
             height: 5,
             skip: 1,
             text: `110101110101110`
         },
-        'г': {
+        'Г': {
             width: 3,
             height: 5,
             skip: 1,
             text: `111100100100100`
         },
-        'д': {
+        'Д': {
             width: 5,
             height: 5,
             skip: 1,
             text: `0111001010010101111110001`
         },
-        'е': {
+        'Е': {
             width: 3,
             height: 5,
             skip: 1,
             text: `111100111100111`
         },
-        'ё': {
+        'Ё': {
             width: 3,
             height: 7,
             skip: -1,
             text: `101000111100111100111`
         },
-        'ж': {
+        'Ж': {
             width: 5,
             height: 5,
             skip: 1,
             text: `1010110101011101010110101`
         },
-        'з': {
+        'З': {
             width: 4,
             height: 5,
             skip: 1,
             text: `01101001001010010110`
         },
-        'и': {
+        'И': {
             width: 4,
             height: 5,
             skip: 1,
             text: `10011001101111011001`
         },
-        'й': {
+        'Й': {
             width: 4,
             height: 8,
             skip: -2,
             text: `01000010000010011001101111011001`
         },
-        'к': {
+        'К': {
             width: 3,
             height: 5,
             skip: 1,
             text: `101101110101101`
         },
-        'л': {
+        'Л': {
             width: 3,
             height: 5,
             skip: 1,
             text: `010101101101101`
         },
-        'м': {
+        'М': {
             width: 5,
             height: 5,
             skip: 1,
             text: `1000111011101011000110001`
         },
-        'н': {
+        'Н': {
             width: 3,
             height: 5,
             skip: 1,
             text: `101101111101101`
         },
-        'о': {
+        'О': {
             width: 3,
             height: 5,
             skip: 1,
             text: `010101101101010`
         },
-        'п': {
+        'П': {
             width: 3,
             height: 5,
             skip: 1,
             text: `111101101101101`
         },
-        'р': {
+        'Р': {
             width: 3,
             height: 5,
             skip: 1,
             text: `110101110100100`
         },
-        'с': {
+        'С': {
             width: 3,
             height: 5,
             skip: 1,
             text: `111100100100111`
         },
-        'т': {
+        'Т': {
             width: 3,
             height: 5,
             skip: 1,
             text: `111010010010010`
         },
-        'у': {
+        'У': {
             width: 3,
             height: 5,
             skip: 1,
             text: `101101010010100`
         },
-        'ф': {
+        'Ф': {
             width: 5,
             height: 5,
             skip: 1,
             text: `0010001110101010111000100`
         },
-        'х': {
+        'Х': {
             width: 3,
             height: 5,
             skip: 1,
             text: `101101010101101`
         },
-        'ц': {
+        'Ц': {
             width: 4,
             height: 6,
             skip: 1,
             text: `101010101010101011100011`
         },
-        'ч': {
+        'Ч': {
             width: 3,
             height: 5,
             skip: 1,
             text: `101101111001001`
         },
-        'ш': {
+        'Ш': {
             width: 5,
             height: 5,
             skip: 1,
             text: `1010110101101011010111111`
         },
-        'щ': {
+        'Щ': {
             width: 6,
             height: 6,
             skip: 1,
             text: `101010101010101010101010111110000011`
         },
-        'ъ': {
+        'Ъ': {
             width: 4,
             height: 5,
             skip: 1,
             text: `11000100011101010111`
         },
-        'ы': {
+        'Ы': {
             width: 5,
             height: 5,
             skip: 1,
             text: `1000110001111011010111101`
         },
-        'ь': {
+        'Ь': {
             width: 3,
             height: 5,
             skip: 1,
             text: `100100111101111`
         },
-        'э': {
+        'Э': {
             width: 4,
             height: 5,
             skip: 1,
             text: `01101001001110010110`
         },
-        'ю': {
+        'Ю': {
             width: 5,
             height: 5,
             skip: 1,
             text: `1011110101111011010110111`
         },
-        'я': {
+        'Я': {
             width: 3,
             height: 5,
             skip: 1,
@@ -1863,10 +1894,8 @@ const IMPORTS = (function () {
         PM: undefined,
         localStorage: browser ? (localStorage.NS ? JSON.parse(localStorage.NS) : {}) : undefined,
         base64,
-        base256,
         dataImages,
         cursors,
-        eventIds,
         browser: browser,
         node: !browser,
         modules: [],
@@ -1877,6 +1906,22 @@ const IMPORTS = (function () {
     }
 
     const EE = new EventEmitter("EE");
+
+    (function () {
+        const originalAddEventListener = EventTarget.prototype.addEventListener;
+
+        let wheelEventName = ('onwheel' in document) ? 'wheel' : ('onmousewheel' in document) ? 'mousewheel' : 'DOMMouseScroll';
+        EventTarget.prototype.addEventListener = function (type, listener, options) {
+            if (type !== wheelEventName) {
+                originalAddEventListener.call(this, type, listener, options);
+            } else {
+                if (options.NS) {
+                    originalAddEventListener.call(this, type, listener, options);
+                } else {
+                }
+            }
+        };
+    })();
 
     const PM = new PixelManager();
     NS.PM = PM;
@@ -2151,13 +2196,6 @@ function install() {
             return x === targetPlayer.endX && y === targetPlayer.endY;
         }
         void renderPlayer;
-    }());
-
-    // owop listeners
-    ((false) && !function () {
-        OWOP.on(OWOP.events.net.world.join, function () {
-            console.log(arguments, 'join');
-        });
     }());
 
     // tool icons
@@ -2646,11 +2684,49 @@ function install() {
                             switch (tool.extra.state.type) {
                                 case "export": {
                                     ((x, y, w, h, onblob) => {
+                                        // const width = 32, height = 32;
+                                        // const data = new Uint8ClampedArray(width * height * 4);
+
+                                        // let index = 0;
+                                        // for (let j = y; j < y + h; j++) {
+                                        //     for (let i = x; i < x + w; i++) {
+                                        //         let pix = undefined;
+                                        //         let tempPix = PM.queue[`${i},${j}`];
+                                        //         if (!tempPix) {
+                                        //             if ((pix = PM.getPixel(i, j), !pix)) {
+                                        //                 warn = true;
+                                        //                 pix = [255, 255, 255];
+                                        //             }
+                                        //         } else {
+                                        //             pix = tempPix.c.rgb;
+                                        //         }
+                                        //         data[index++] = pix[0];
+                                        //         data[index++] = pix[1];
+                                        //         data[index++] = pix[2];
+                                        //         data[index++] = 255;
+                                        //     }
+                                        // }
+
+                                        // const imageData = new ImageData(data, width, height);
+
+                                        // createImageBitmap(imageData, {
+                                        //     imageOrientation: "none",
+                                        //     premultiplyAlpha: "none",
+                                        // }).then(bitmap => {
+                                        //     const c = document.createElement('canvas');
+                                        //     c.width = w;
+                                        //     c.height = h;
+                                        //     const ctx = c.getContext('bitmaprenderer');
+                                        //     ctx.transferFromImageBitmap(bitmap);
+                                        //     c.toBlob(onblob);
+                                        // });
+
                                         let c = document.createElement('canvas');
                                         c.width = w;
                                         c.height = h;
                                         let ctx = c.getContext('2d');
                                         let d = ctx.createImageData(w, h);
+                                        let index = 0;
                                         for (let j = y; j < y + h; j++) {
                                             for (let i = x; i < x + w; i++) {
                                                 let pix = undefined;
@@ -2663,10 +2739,10 @@ function install() {
                                                 } else {
                                                     pix = tempPix.c.rgb;
                                                 }
-                                                d.data[4 * ((j - y) * w + (i - x))] = pix[0];
-                                                d.data[4 * ((j - y) * w + (i - x)) + 1] = pix[1];
-                                                d.data[4 * ((j - y) * w + (i - x)) + 2] = pix[2];
-                                                d.data[4 * ((j - y) * w + (i - x)) + 3] = 255;
+                                                d.data[index++] = pix[0];
+                                                d.data[index++] = pix[1];
+                                                d.data[index++] = pix[2];
+                                                d.data[index++] = 255;
                                             }
                                         }
                                         ctx.putImageData(d, 0, 0);
@@ -3645,7 +3721,6 @@ function install() {
                                 }
                                 return;
                             }
-                            console.log(event);
                             tool.extra.text += event.key;
                             return 1;
                         });
@@ -3702,87 +3777,6 @@ function install() {
             }
         }
         a();
-    }());
-
-    // teleport detector
-    ((false) && !function () {
-        OWOP.playerList = {};
-        function tick() {
-            let players = OWOP.require("main").playerList;
-            let playersFixed = {};
-            playersFixed[OWOP.player.id] = {
-                id: OWOP.player.id,
-                x: OWOP.mouse.tileX,
-                y: OWOP.mouse.tileY
-            };
-            for (let player in players) {
-                let n = players[player].childNodes;
-                playersFixed[n[0].innerHTML] = {
-                    id: ~~n[0].innerHTML,
-                    x: ~~n[1].innerHTML,
-                    y: ~~n[2].innerHTML
-                }
-            }
-            players = playersFixed;
-            // check if the local copy has a disconnected player
-            for (let p1 in OWOP.playerList) {
-                let test = false;
-                for (let p2 in players) {
-                    if (p1 === p2) {
-                        test = true;
-                        break;
-                    }
-                }
-                if (!test) {
-                    delete OWOP.playerList[p1];
-                    // ! MARK FOR CHANGE
-                    //OWOP.chat.local(`${p1} has left.`);
-                }
-            }
-            // check if the main copy has new players
-            for (let p1 in players) {
-                let test = false;
-                for (let p2 in OWOP.playerList) {
-                    if (p1 === p2) {
-                        test = true;
-                        break;
-                    }
-                }
-                if (!test) {
-                    let p = players[p1];
-                    OWOP.playerList[p.id] = {
-                        id: p.id,
-                        x: p.x,
-                        y: p.y
-                    }
-                    // ! MARK FOR CHANGE
-                    //OWOP.chat.local(`${p1} has joined.`);
-                }
-            }
-            // check for a teleport
-            // let banlist = [];
-            for (let player in players) {
-                let p1 = OWOP.playerList[player];
-                let p2 = players[player];
-
-                if (Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) > 2000) {
-                    //console.log("someone teleported", p2.id,  p2.x, p2.y);
-                    p1.tp = !isNaN(p1.tp) ? p1.tp + 1 : 1;
-                    //if (!p1.ban && p1.tp < 10) OWOP.chat.local(`${player} Teleported from ${p1.x} ${p1.y} to ${p2.x} ${p2.y}`);
-                }
-                p1.x = p2.x;
-                p1.y = p2.y;
-            }
-            return players;
-        }
-        setInterval(tick, 10);
-        setInterval(() => {
-            for (let player in OWOP.playerList) {
-                let p1 = OWOP.playerList[player];
-                if (p1.tp >= 10) p1.ban = true;
-                p1.tp = 0;
-            }
-        }, 1e4);
     }());
 
     // setting style classes
@@ -3948,7 +3942,12 @@ function install() {
                             NS.teleport.camera = {};
                             break;
                         }
-                        if (Math.abs(x) > 0xFFFFFF || Math.abs(y) > 0xFFFFFF) break;
+                        if (Math.abs(x) > 0xFFFFFF) {
+                            x = Math.sign(x) * 0xFFFFFF;
+                        }
+                        if (Math.abs(y) > 0xFFFFFF) {
+                            y = Math.sign(y) * 0xFFFFFF;
+                        }
                         if (Math.abs(x) < 5e5 && Math.abs(y) < 5e5) {
                             NS.teleport.camera = {};
                             OWOP.emit(29, x, y);
@@ -3982,10 +3981,9 @@ function install() {
                     } break;
                     case "wl":
                     case "whitelist": {
+                        if (OWOP.player.rank > 1 && PM.enableMod) OWOP.chat.local(`Disable moderator on PM to allow whitelist to work.`);
                         if (!command[1]) {
-                            let wl = [];
-                            PM.whitelist.forEach(v => wl.push(v));
-                            OWOP.chat.local(`Whitelist: ${wl.join(", ")}`);
+                            OWOP.chat.local(`Whitelist: ${Object.keys(PM.whitelist).join(", ")}`);
                             console.log(1);
                             break;
                         }
@@ -3996,7 +3994,7 @@ function install() {
                                     console.log(3);
                                     break;
                                 }
-                                if (PM.whitelist.has(command[2])) {
+                                if (PM.whitelist[command[2]]) {
                                     OWOP.chat.local(`Player ${command[2]} is already whitelisted.`);
                                     console.log(4);
                                     break;
@@ -4006,7 +4004,7 @@ function install() {
                                     console.log(5);
                                     break;
                                 }
-                                PM.whitelist[command[2]] = { super: false };
+                                PM.whitelist[command[2]] = true;
                                 OWOP.chat.local(`Player ${command[2]} added to whitelist.`);
                                 console.log(6);
                             } break;
@@ -4016,12 +4014,12 @@ function install() {
                                     console.log(7);
                                     break;
                                 }
-                                if (!PM.whitelist.has(command[2])) {
+                                if (!PM.whitelist[command[2]]) {
                                     OWOP.chat.local(`Player ${command[2]} is not on the whitelist.`);
                                     console.log(8);
                                     break;
                                 }
-                                PM.whitelist.remove(command[2]);
+                                delete PM.whitelist[command[2]];
                                 OWOP.chat.local(`Player ${command[2]} removed from whitelist.`);
                                 console.log(9);
                             } break;
@@ -4199,7 +4197,6 @@ function install() {
         clearInterval(OWOP.misc.tickInterval);
         NS.tickIntervalNS = setInterval(mainTick, 1000 / OWOP.options.tickSpeed);
         function mainTick() {
-            // console.log(t);
             OWOP.emit(OWOP.events.tick, undefined /*t*/);
             if (null !== OWOP.player.tool && null !== OWOP.misc._world) OWOP.player.tool.call("tick");
             if (OWOP.player.tool === OWOP.tool.allTools.write) return;
@@ -4248,9 +4245,44 @@ function install() {
             let remainingButtons = mouse.buttons & ~cancelledButtons;
             if (remainingButtons & 0b100) { /* If middle click was not used for anything */
                 //! i didnt check if NS.M20.moveCameraBy is correct;
-                //NS.M20.moveCameraBy((mouse.mouseDownWorldX - mouse.worldX) / 16, (mouse.mouseDownWorldY - mouse.worldY) / 16);
+                // OWOP.camera.moveCameraBy((mouse.mouseDownWorldX - mouse.worldX) / 16, (mouse.mouseDownWorldY - mouse.worldY) / 16);
             }
         });
+        const mousewheel = event => {
+            if (event.ctrlKey) zoom(OWOP.mouse, Math.sign(-event.deltaY));
+            else OWOP.player.paletteIndex += Math.sign(event.deltaY);
+        };
+
+        viewport.addEventListener("wheel", mousewheel, { passive: true, NS: true });
+        viewport.addEventListener("wheel", (function (e) { e.preventDefault() }), { passive: !1, NS: true });
+
+        function zoom(mouse, type) {
+            let lzoom = OWOP.camera.zoom;
+            let nzoom = OWOP.camera.zoom;
+            let offX = 0;
+            let offY = 0;
+            let w = window.innerWidth;
+            let h = window.innerHeight;
+            if (type === 1) {
+                // Zoom in
+                nzoom *= 1 + OWOP.options.zoomStrength;
+                offX = (mouse.x - w / 2) / nzoom;
+                offY = (mouse.y - h / 2) / nzoom;
+            } else if (type === -1) {
+                // Zoom out
+                nzoom /= 1 + OWOP.options.zoomStrength;
+                offX = (mouse.x - w / 2) * (3 / lzoom - 2 / nzoom);
+                offY = (mouse.y - h / 2) * (3 / lzoom - 2 / nzoom);
+            } else if (type === 3) {
+                // Reset zoom (right + left click)
+                // nzoom = OWOP.options.defaultZoom;
+            }
+            nzoom = Math.round(nzoom);
+            OWOP.camera.zoom = nzoom;
+            if (OWOP.camera.zoom !== lzoom) {
+                OWOP.camera.moveCameraBy(offX, offY);
+            }
+        }
     }());
 
     // window setup
@@ -5374,6 +5406,7 @@ function install() {
                 let options = root.querySelector("#options");
 
                 options.appendChild(optionmaker("Disable PM", "button", !NS.PM.enabled, () => NS.PM.enabled = !NS.PM.enabled));
+                options.appendChild(optionmaker("Disable PM mod", "button", !NS.PM.enableMod, () => NS.PM.enableMod = !NS.PM.enableMod));
                 options.appendChild(optionmaker("Ignore Protection", "button", NS.PM.ignoreProtectedChunks, () => NS.PM.ignoreProtectedChunks = !NS.PM.ignoreProtectedChunks));
                 options.appendChild(optionmaker("Clear PM", "select", void 0, () => NS.PM.clearQueue()));
                 options.appendChild(optionmaker("Render PM", "button", NS.PM.renderBorder, () => NS.PM.renderBorder = !NS.PM.renderBorder));
