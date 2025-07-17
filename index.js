@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.1.5
+// @version      1.1.5.1
 // @description  Script for OWOP
 // @author       NekoNoka
 // @match        https://ourworldofpixels.com/*
@@ -4253,8 +4253,8 @@ function install() {
             else OWOP.player.paletteIndex += Math.sign(event.deltaY);
         };
 
-        viewport.addEventListener("wheel", mousewheel, { passive: true, NS: true });
-        viewport.addEventListener("wheel", (function (e) { e.preventDefault() }), { passive: !1, NS: true });
+        document.getElementById("viewport").addEventListener("wheel", mousewheel, { passive: true, NS: true });
+        document.getElementById("viewport").addEventListener("wheel", (function (e) { e.preventDefault() }), { passive: !1, NS: true });
 
         function zoom(mouse, type) {
             let lzoom = OWOP.camera.zoom;
