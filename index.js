@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neko's Scripts
 // @namespace    http://tampermonkey.net/
-// @version      1.1.5.1
+// @version      1.1.6
 // @description  Script for OWOP
 // @author       NekoNoka
 // @match        https://ourworldofpixels.com/*
@@ -461,32 +461,32 @@ const IMPORTS = (function () {
         undo() {
             if (!this.enabled) return;
             if (!this.undoStack.length) return;
-            let action = this.undoStack.pop();
-            for (let e in action) {
-                let e2 = action[e];
-                if (!this.queue[`${e2.x},${e2.y}`] && (delete action[e], true)) continue;
-                this.setPixel(e2.x, e2.y, e2.undo().rgb);
+            let actionList = this.undoStack.pop();
+            for (let index in actionList) {
+                let action = actionList[index];
+                if (!this.queue[`${action.x},${action.y}`] && (delete actionList[index], true)) continue;
+                this.setPixel(action.x, action.y, action.undo().rgb);
             }
-            if (!Object.keys(action).length) {
+            if (!Object.keys(actionList).length) {
                 this.undo();
                 return;
             }
-            this.redoStack.push(action);
+            this.redoStack.push(actionList);
         }
         redo() {
             if (!this.enabled) return;
             if (!this.redoStack.length) return;
-            let action = this.redoStack.pop();
-            for (let e in action) {
-                let e2 = action[e];
-                if (!this.queue[`${e2.x},${e2.y}`] && (delete action[e], true)) continue;
-                this.setPixel(e2.x, e2.y, e2.redo().rgb);
+            let actionList = this.redoStack.pop();
+            for (let index in actionList) {
+                let action = actionList[index];
+                if (!this.queue[`${action.x},${action.y}`] && (delete actionList[index], true)) continue;
+                this.setPixel(action.x, action.y, action.redo().rgb);
             }
-            if (!Object.keys(action).length) {
+            if (!Object.keys(actionList).length) {
                 this.redo();
                 return;
             }
-            this.undoStack.push(action);
+            this.undoStack.push(actionList);
         }
         startHistory() {
             this.record = true;
@@ -2098,6 +2098,32 @@ function install() {
                     //     break;
                     case KeyCode.escape: // Esc
                         NS.teleport.camera = {};
+                        break;
+                    case KeyCode.tilde:
+                        let userInput = prompt("Custom color\nType three values separated by a comma: r,g,b\n(...or the hex string: #RRGGBB)\nYou can add multiple colors at a time separating them with a space.");
+                        if (!userInput) {
+                            break;
+                        }
+                        userInput = userInput.split(' ');
+                        for (let j = 0; j < userInput.length; j++) {
+                            let elementInput = userInput[j];
+                            elementInput = elementInput.split(',');
+                            let rgb = null;
+                            if (elementInput.length == 3) {
+                                rgb = elementInput;
+                                for (let i = 0; i < elementInput.length; i++) {
+                                    elementInput[i] = +elementInput[i];
+                                    if (!(elementInput[i] >= 0 && elementInput[i] < 256)) {
+                                        return null;
+                                    }
+                                }
+                            } else if (elementInput[0] == '#' && elementInput.length == 7) {
+                                let hexColor = parseInt(elementInput.replace('#', '0x'));
+                                /* The parsed HTML color doesn't have red as the first byte, so invert it. */
+                                rgb = [hexColor >> 16 & 0xFF, hexColor >> 8 & 0xFF, hexColor & 0xFF];
+                            }
+                            if (rgb) OWOP.player.selectedColor = rgb;
+                        }
                         break;
                 }
                 (NS.extra.log && console.log(event));
@@ -4254,7 +4280,7 @@ function install() {
         };
 
         document.getElementById("viewport").addEventListener("wheel", mousewheel, { passive: true, NS: true });
-        document.getElementById("viewport").addEventListener("wheel", (function (e) { e.preventDefault() }), { passive: !1, NS: true });
+        document.getElementById("viewport").addEventListener("wheel", (function (e) { e.preventDefault() }), { passive: false, NS: true });
 
         function zoom(mouse, type) {
             let lzoom = OWOP.camera.zoom;
