@@ -11,7 +11,7 @@ There is [documentation](https://github.com/NekoNoka/Neko-OWOP-Scripts/blob/main
 
 I have a Discord Server where people can suggest features and announcements for updates.
 
-https://discord.gg/yDKTftUsXg
+https://discord.gg/ChGDaWuHgH
 
 # Instructions
 
